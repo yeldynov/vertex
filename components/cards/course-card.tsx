@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ChartNoAxesColumnIncreasing, Clock, Folder } from "lucide-react";
+import { ChartNoAxesColumnIncreasing, Clock, File, Folder } from "lucide-react";
+import { cx } from "@/lib/cx";
 import { Card } from "./card";
 
+/** `row`: icon beside the text (design system). `stacked`: icon on top, serif title (home grid). */
 export function CourseCard({
   href,
   icon,
@@ -11,6 +13,7 @@ export function CourseCard({
   level,
   duration,
   moduleCount,
+  layout = "row",
 }: {
   href: string;
   icon: ReactNode;
@@ -19,21 +22,31 @@ export function CourseCard({
   level: string;
   duration: string;
   moduleCount: number;
+  layout?: "row" | "stacked";
 }) {
+  const stacked = layout === "stacked";
+  const ModulesIcon = stacked ? File : Folder;
   return (
-    <Card className="relative gap-5 transition-shadow hover:shadow-md">
-      <div className="flex gap-4">
-        <div className="size-12 shrink-0 overflow-hidden rounded-sm">{icon}</div>
+    <Card className={cx("relative gap-5 transition-shadow hover:shadow-md", stacked && "p-6")}>
+      <div className={cx("flex gap-4", stacked && "flex-col gap-5")}>
+        <div className={cx("shrink-0 overflow-hidden rounded-sm", stacked ? "size-18" : "size-12")}>{icon}</div>
         <div className="min-w-0">
-          <h3 className="text-h3 font-semibold">
+          <h3 className={stacked ? "font-display text-h2 font-normal" : "text-h3 font-semibold"}>
             <Link href={href} className="after:absolute after:inset-0 after:rounded-lg">
               {title}
             </Link>
           </h3>
-          <p className="mt-1 text-body text-neutral-500">{description}</p>
+          <p className={cx("text-body text-neutral-500", stacked ? "mt-4 leading-6" : "mt-1")}>{description}</p>
         </div>
       </div>
-      <ul className="mt-auto flex flex-wrap gap-x-5 gap-y-2 text-small text-neutral-700">
+      <ul
+        className={cx(
+          "mt-auto flex gap-y-2 text-neutral-700",
+          stacked
+            ? "-mx-2 justify-between gap-x-2 border-t border-neutral-200 pt-5 text-[0.6875rem] whitespace-nowrap *:gap-1 [&_svg]:size-3.5"
+            : "flex-wrap gap-x-5 text-small",
+        )}
+      >
         <li className="flex items-center gap-1.5">
           <ChartNoAxesColumnIncreasing aria-hidden className="size-4" />
           {level}
@@ -43,7 +56,7 @@ export function CourseCard({
           {duration}
         </li>
         <li className="flex items-center gap-1.5">
-          <Folder aria-hidden className="size-4" />
+          <ModulesIcon aria-hidden className="size-4" />
           {moduleCount} modules
         </li>
       </ul>
