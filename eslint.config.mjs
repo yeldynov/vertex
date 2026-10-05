@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     "agent/**",
     ".agents/**",
     ".claude/**",
+    // Standalone Sanity Studio has its own toolchain
+    "studio/**",
   ]),
 ]);
 
