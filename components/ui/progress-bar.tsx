@@ -1,6 +1,15 @@
 import { cx } from "@/lib/cx";
 
-export function ProgressBar({ value, className }: { value: number; className?: string }) {
+/** `showLabel={false}` when the caller prints the percentage elsewhere. */
+export function ProgressBar({
+  value,
+  showLabel = true,
+  className,
+}: {
+  value: number;
+  showLabel?: boolean;
+  className?: string;
+}) {
   const pct = Math.round(Math.min(100, Math.max(0, value)));
   return (
     <div className={cx("flex items-center gap-4", className)}>
@@ -14,7 +23,7 @@ export function ProgressBar({ value, className }: { value: number; className?: s
       >
         <div className="h-full rounded-full bg-primary-500" style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-small whitespace-nowrap text-neutral-700">{pct}% complete</span>
+      {showLabel && <span className="text-small whitespace-nowrap text-neutral-700">{pct}% complete</span>}
     </div>
   );
 }
