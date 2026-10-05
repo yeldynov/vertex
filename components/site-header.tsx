@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { Bell, UserRound } from "lucide-react";
+import { Bell } from "lucide-react";
+import { Show, SignInButton, UserButton } from "@clerk/nextjs";
+import { buttonClasses } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 
 export function SiteHeader() {
@@ -26,14 +28,16 @@ export function SiteHeader() {
           <button type="button" aria-label="Notifications" className="rounded-full p-1 text-neutral-700 hover:text-neutral-900">
             <Bell aria-hidden className="size-6" />
           </button>
-          {/* Replaced by Clerk's UserButton once auth is wired */}
-          <span
-            aria-label="Account"
-            role="img"
-            className="grid size-10 place-items-center rounded-full bg-neutral-100 text-neutral-500 ring-2 ring-white sm:size-13"
-          >
-            <UserRound aria-hidden className="size-5 sm:size-6" />
-          </span>
+          <Show when="signed-out">
+            <SignInButton mode="modal">
+              <button type="button" className={buttonClasses("primary")}>
+                Sign in
+              </button>
+            </SignInButton>
+          </Show>
+          <Show when="signed-in">
+            <UserButton appearance={{ elements: { avatarBox: "size-10 ring-2 ring-white sm:size-13" } }} />
+          </Show>
         </div>
       </div>
     </header>
