@@ -18,6 +18,7 @@ export const course = defineType({
     defineField({
       name: 'coverImage',
       type: 'image',
+      fields: [defineField({name: 'alt', type: 'string'})],
       description: 'Course icon shown on cards and the course page.',
       validation: (rule) => rule.required(),
     }),
