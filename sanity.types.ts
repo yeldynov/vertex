@@ -17,7 +17,7 @@ export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: schema.json
 export type Resource = {
   _type: "resource";
-  type?: "article" | "docs" | "repo" | "download" | "video";
+  type?: "link" | "article" | "docs" | "repo" | "download" | "video";
   title?: string;
   description?: string;
   url?: string;
@@ -35,7 +35,10 @@ export type LearningOutcome = {
     | "shield-check"
     | "gauge"
     | "puzzle"
-    | "target";
+    | "target"
+    | "workflow"
+    | "sparkles"
+    | "shield";
   title?: string;
   description?: string;
 };
@@ -79,6 +82,7 @@ export type Lesson = {
     media?: unknown;
     hotspot?: SanityImageHotspot;
     crop?: SanityImageCrop;
+    alt?: string;
     _type: "image";
   };
   duration?: number;
@@ -161,6 +165,7 @@ export type Course = {
     media?: unknown;
     hotspot?: SanityImageHotspot;
     crop?: SanityImageCrop;
+    alt?: string;
     _type: "image";
   };
   level?: "beginner" | "intermediate" | "advanced";
@@ -205,9 +210,10 @@ export type Instructor = {
     media?: unknown;
     hotspot?: SanityImageHotspot;
     crop?: SanityImageCrop;
+    alt?: string;
     _type: "image";
   };
-  expertise?: string;
+  expertise?: Array<string>;
   bio?: Array<{
     children?: Array<{
       marks?: Array<string>;
@@ -362,6 +368,7 @@ export type COURSES_QUERY_RESULT = Array<{
     media?: unknown;
     hotspot?: SanityImageHotspot;
     crop?: SanityImageCrop;
+    alt?: string;
     _type: "image";
   } | null;
   level: "advanced" | "beginner" | "intermediate" | null;
@@ -404,6 +411,7 @@ export type COURSE_QUERY_RESULT = {
     media?: unknown;
     hotspot?: SanityImageHotspot;
     crop?: SanityImageCrop;
+    alt?: string;
     _type: "image";
   } | null;
   level: "advanced" | "beginner" | "intermediate" | null;
@@ -425,9 +433,10 @@ export type COURSE_QUERY_RESULT = {
       media?: unknown;
       hotspot?: SanityImageHotspot;
       crop?: SanityImageCrop;
+      alt?: string;
       _type: "image";
     } | null;
-    expertise: string | null;
+    expertise: Array<string> | null;
   } | null;
   learningOutcomes: Array<{
     _key: string;
@@ -440,7 +449,10 @@ export type COURSE_QUERY_RESULT = {
       | "rocket"
       | "server"
       | "shield-check"
+      | "shield"
+      | "sparkles"
       | "target"
+      | "workflow"
       | "zap"
       | null;
     title: string | null;
@@ -473,6 +485,7 @@ export type LESSON_QUERY_RESULT = {
     media?: unknown;
     hotspot?: SanityImageHotspot;
     crop?: SanityImageCrop;
+    alt?: string;
     _type: "image";
   } | null;
   duration: number | null;
@@ -500,7 +513,7 @@ export type LESSON_QUERY_RESULT = {
   proTip: string | null;
   resources: Array<{
     _key: string;
-    type: "article" | "docs" | "download" | "repo" | "video" | null;
+    type: "article" | "docs" | "download" | "link" | "repo" | "video" | null;
     title: string | null;
     description: string | null;
     url: string | null;
@@ -514,6 +527,7 @@ export type LESSON_QUERY_RESULT = {
       media?: unknown;
       hotspot?: SanityImageHotspot;
       crop?: SanityImageCrop;
+      alt?: string;
       _type: "image";
     } | null;
     instructor: {
@@ -524,9 +538,10 @@ export type LESSON_QUERY_RESULT = {
         media?: unknown;
         hotspot?: SanityImageHotspot;
         crop?: SanityImageCrop;
+        alt?: string;
         _type: "image";
       } | null;
-      expertise: string | null;
+      expertise: Array<string> | null;
     } | null;
     modules: Array<{
       _key: string;
@@ -554,9 +569,10 @@ export type INSTRUCTOR_QUERY_RESULT = {
     media?: unknown;
     hotspot?: SanityImageHotspot;
     crop?: SanityImageCrop;
+    alt?: string;
     _type: "image";
   } | null;
-  expertise: string | null;
+  expertise: Array<string> | null;
   bio: Array<{
     children?: Array<{
       marks?: Array<string>;
@@ -585,6 +601,7 @@ export type INSTRUCTOR_QUERY_RESULT = {
       media?: unknown;
       hotspot?: SanityImageHotspot;
       crop?: SanityImageCrop;
+      alt?: string;
       _type: "image";
     } | null;
     level: "advanced" | "beginner" | "intermediate" | null;

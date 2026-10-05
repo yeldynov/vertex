@@ -14,9 +14,17 @@ export const instructor = defineType({
       options: {source: 'name'},
       validation: (rule) => rule.required(),
     }),
-    defineField({name: 'photo', type: 'image', options: {hotspot: true}}),
-    defineField({name: 'expertise', type: 'string', description: 'e.g. "Senior Frontend Engineer"'}),
+    defineField({name: 'photo', type: 'image', options: {hotspot: true}, fields: [defineField({name: 'alt', type: 'string'})]}),
+    defineField({
+      name: 'expertise',
+      type: 'array',
+      of: [defineArrayMember({type: 'string'})],
+      options: {layout: 'tags'},
+    }),
     defineField({name: 'bio', type: 'array', of: [defineArrayMember({type: 'block'})]}),
   ],
-  preview: {select: {title: 'name', subtitle: 'expertise', media: 'photo'}},
+  preview: {
+    select: {title: 'name', expertise: 'expertise', media: 'photo'},
+    prepare: ({title, expertise, media}) => ({title, subtitle: expertise?.join(', '), media}),
+  },
 })

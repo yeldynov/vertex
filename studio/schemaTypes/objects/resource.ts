@@ -12,6 +12,7 @@ export const resource = defineType({
       type: 'string',
       options: {
         list: [
+          {title: 'Link', value: 'link'},
           {title: 'Article', value: 'article'},
           {title: 'Docs', value: 'docs'},
           {title: 'Repository', value: 'repo'},

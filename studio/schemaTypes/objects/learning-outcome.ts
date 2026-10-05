@@ -12,7 +12,7 @@ export const learningOutcome = defineType({
       type: 'string',
       description: 'Lucide icon name rendered by the site.',
       options: {
-        list: ['rocket', 'layers', 'zap', 'code', 'server', 'database', 'shield-check', 'gauge', 'puzzle', 'target'],
+        list: ['rocket', 'layers', 'zap', 'code', 'server', 'database', 'shield-check', 'gauge', 'puzzle', 'target', 'workflow', 'sparkles', 'shield'],
       },
     }),
     defineField({name: 'title', type: 'string', validation: (rule) => rule.required()}),

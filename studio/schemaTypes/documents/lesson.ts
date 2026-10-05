@@ -32,7 +32,7 @@ export const lesson = defineType({
           }
         }),
     }),
-    defineField({name: 'poster', type: 'image', options: {hotspot: true}}),
+    defineField({name: 'poster', type: 'image', options: {hotspot: true}, fields: [defineField({name: 'alt', type: 'string'})]}),
     defineField({
       name: 'duration',
       type: 'number',
