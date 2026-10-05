@@ -13,3 +13,8 @@ export function formatDuration(seconds: number) {
   if (m) return s ? `${m}m ${s}s` : `${m}m`;
   return `${s}s`;
 }
+
+const compact = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
+
+/** 18240 → "18.2k", 950 → "950". */
+export const formatCount = (n: number) => compact.format(n).toLowerCase();
