@@ -93,3 +93,29 @@ export const LESSON_PATHS_QUERY = defineQuery(`
     "lessonSlugs": modules[].lessons[]->slug.current
   }
 `);
+
+// Grounds one search hit: everything shown on a result card comes from here, never from the model.
+// $t is the claimed video second (-1 for lesson hits); it only counts if a chapter or chunk starts there.
+export const SEARCH_HIT_QUERY = defineQuery(`
+  *[_type == "lesson" && _id == $id][0] {
+    _id,
+    title,
+    "slug": slug.current,
+    duration,
+    poster,
+    keyPoints,
+    "excerpt": pt::text(notes[style == "normal" && !defined(listItem)][0...1]),
+    "course": *[_type == "course" && references(^._id)][0] {
+      title,
+      "slug": slug.current,
+      coverImage,
+      "modules": modules[] { title, "lessonIds": lessons[]._ref }
+    },
+    "video": *[_type == "video" && url == ^.videoUrl][0] {
+      "chapter": chapters[startSeconds == $t][0].label,
+      "nextChapter": math::min(chapters[startSeconds > $t].startSeconds),
+      "chunk": chunks[startSeconds == $t][0].text,
+      "nextChunk": math::min(chunks[startSeconds > $t].startSeconds)
+    }
+  }
+`);

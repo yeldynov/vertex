@@ -1,0 +1,12 @@
+{
+  "_id": "agentContext.vertex-search",
+  "_type": "sanity.agentContext",
+  "version": "1",
+  "name": "Vertex Search",
+  "slug": {
+    "_type": "slug",
+    "current": "vertex-search"
+  },
+  "groqFilter": "_type in [\"course\", \"lesson\", \"video\", \"category\", \"instructor\"]",
+  "instructions": "### Relationships\n- A lesson has no course field. Find its course by reverse reference: *[_type == \"course\" && references(^._id)][0].\n- Module and lesson labels (\"Module 5\", \"Lesson 5.1\") are never stored. They come from 1-based array order: course.modules[] order, then modules[].lessons[] order.\n- A video document maps to its lesson through video.url == lesson.videoUrl (not by id). Video documents are internal; always report the lesson, never the video itself.\n\n### Text matching\n- Split the query into keywords, drop stop words, wildcard each one, and OR them: title match [\"data*\", \"fetching*\"]. Never match the whole phrase as one pattern.\n- lesson.notes is Portable Text. Match it through pt::text(notes), never the raw array.\n- text::semanticSimilarity is not available (embeddings are off). Use match only.\n\n### Lessons\n- Search title, pt::text(notes) and keyPoints[]. Rank with score(boost(title match $terms, 3), pt::text(notes) match $terms, keyPoints[] match $terms) | order(_score desc).\n\n### Video moments\n- Match chapters first: chapters[label match $terms]{startSeconds, label}.\n- Only if a video has no matching chapter, fall back to chunks[text match $terms][0...3]{startSeconds, text}.\n- Never project the whole chunks or chapters array. It overflows the context window.\n\n### Grounding\n- Every lessonId and startSeconds you report must come from a query result. Never invent courses, lessons, timestamps, durations or counts."
+}
