@@ -61,6 +61,27 @@ export type Module = {
   >;
 };
 
+export type Video = {
+  _id: string;
+  _type: "video";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  url?: string;
+  chapters?: Array<{
+    startSeconds?: number;
+    label?: string;
+    _type: "chapter";
+    _key: string;
+  }>;
+  chunks?: Array<{
+    startSeconds?: number;
+    text?: string;
+    _type: "chunk";
+    _key: string;
+  }>;
+};
+
 export type SanityImageAssetReference = {
   _ref: string;
   _type: "reference";
@@ -336,6 +357,7 @@ export type AllSanitySchemaTypes =
   | LearningOutcome
   | LessonReference
   | Module
+  | Video
   | SanityImageAssetReference
   | Lesson
   | SanityImageCrop
@@ -636,6 +658,48 @@ export type LESSON_PATHS_QUERY_RESULT = Array<{
   lessonSlugs: Array<string | null> | null;
 }>;
 
+// Source: ../sanity/queries.ts
+// Variable: SEARCH_HIT_QUERY
+// Query: *[_type == "lesson" && _id == $id][0] {    _id,    title,    "slug": slug.current,    duration,    poster,    keyPoints,    "excerpt": pt::text(notes[style == "normal" && !defined(listItem)][0...1]),    "course": *[_type == "course" && references(^._id)][0] {      title,      "slug": slug.current,      coverImage,      "modules": modules[] { title, "lessonIds": lessons[]._ref }    },    "video": *[_type == "video" && url == ^.videoUrl][0] {      "chapter": chapters[startSeconds == $t][0].label,      "nextChapter": math::min(chapters[startSeconds > $t].startSeconds),      "chunk": chunks[startSeconds == $t][0].text,      "nextChunk": math::min(chunks[startSeconds > $t].startSeconds)    }  }
+export type SEARCH_HIT_QUERY_RESULT = {
+  _id: string;
+  title: string | null;
+  slug: string | null;
+  duration: number | null;
+  poster: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    alt?: string;
+    _type: "image";
+  } | null;
+  keyPoints: Array<string> | null;
+  excerpt: string;
+  course: {
+    title: string | null;
+    slug: string | null;
+    coverImage: {
+      asset?: SanityImageAssetReference;
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      alt?: string;
+      _type: "image";
+    } | null;
+    modules: Array<{
+      title: string | null;
+      lessonIds: Array<string> | null;
+    }> | null;
+  } | null;
+  video: {
+    chapter: string | null;
+    nextChapter: number | null;
+    chunk: string | null;
+    nextChunk: number | null;
+  } | null;
+} | null;
+
 // Query TypeMap
 import "@sanity/client";
 declare module "@sanity/client" {
@@ -647,5 +711,6 @@ declare module "@sanity/client" {
     '\n  *[_type == "instructor" && slug.current == $slug][0] {\n    _id,\n    name,\n    "slug": slug.current,\n    photo,\n    expertise,\n    bio,\n    "courses": *[_type == "course" && references(^._id)] | order(title asc) { \n  _id,\n  title,\n  "slug": slug.current,\n  summary,\n  coverImage,\n  level,\n  price,\n  popular,\n  studentCount,\n  "moduleCount": count(modules),\n  "lessonCount": count(modules[].lessons[]),\n  "totalSeconds": math::sum(modules[].lessons[]->duration),\n  category->{ title, "slug": slug.current },\n  instructor->{ name, "slug": slug.current }\n }\n  }\n': INSTRUCTOR_QUERY_RESULT;
     '\n  *[_type == "course" && defined(slug.current)].slug.current\n': COURSE_SLUGS_QUERY_RESULT;
     '\n  *[_type == "course" && defined(slug.current)] {\n    "courseSlug": slug.current,\n    "lessonSlugs": modules[].lessons[]->slug.current\n  }\n': LESSON_PATHS_QUERY_RESULT;
+    '\n  *[_type == "lesson" && _id == $id][0] {\n    _id,\n    title,\n    "slug": slug.current,\n    duration,\n    poster,\n    keyPoints,\n    "excerpt": pt::text(notes[style == "normal" && !defined(listItem)][0...1]),\n    "course": *[_type == "course" && references(^._id)][0] {\n      title,\n      "slug": slug.current,\n      coverImage,\n      "modules": modules[] { title, "lessonIds": lessons[]._ref }\n    },\n    "video": *[_type == "video" && url == ^.videoUrl][0] {\n      "chapter": chapters[startSeconds == $t][0].label,\n      "nextChapter": math::min(chapters[startSeconds > $t].startSeconds),\n      "chunk": chunks[startSeconds == $t][0].text,\n      "nextChunk": math::min(chunks[startSeconds > $t].startSeconds)\n    }\n  }\n': SEARCH_HIT_QUERY_RESULT;
   }
 }

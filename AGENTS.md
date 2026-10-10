@@ -35,7 +35,7 @@ Rules for `web`:
 - The browser never holds a token, never calls the MCP or the LLM, and never writes data. Only client-safe keys may reach the browser: the Clerk publishable key and the PostHog project key.
 - Keep ids and keys in env, and keep `.env.example` as the canonical list.
 
-**Stack:** Next.js App Router, TypeScript, Clerk, PostHog, `next-sanity`, `@sanity/image-url`, `@portabletext/react`, Tailwind + typography, Vercel AI SDK with the OpenAI provider, Zod, and `react-markdown` (search reply only). Do not add a separate backend framework.
+**Stack:** Next.js App Router, TypeScript, Clerk, PostHog, `next-sanity`, `@sanity/image-url`, `@portabletext/react`, Tailwind + typography, Vercel AI SDK with the Google (Gemini) provider, Zod, and `react-markdown` (search reply only). Do not add a separate backend framework.
 
 ## Data model
 
