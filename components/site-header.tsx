@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { Show, SignInButton, UserButton } from "@clerk/nextjs";
+import { TrackedButton } from "@/components/posthog-events";
 import { buttonClasses } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 
@@ -30,9 +31,9 @@ export function SiteHeader() {
           </button>
           <Show when="signed-out">
             <SignInButton mode="modal">
-              <button type="button" className={buttonClasses("primary")}>
+              <TrackedButton type="button" eventName="sign_in_opened" eventProperties={{ source: "site_header" }} className={buttonClasses("primary")}>
                 Sign in
-              </button>
+              </TrackedButton>
             </SignInButton>
           </Show>
           <Show when="signed-in">

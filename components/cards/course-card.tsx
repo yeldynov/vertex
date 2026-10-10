@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { ChartNoAxesColumnIncreasing, Clock, File, Folder } from "lucide-react";
+import { TrackedLink } from "@/components/posthog-events";
 import { cx } from "@/lib/cx";
 import { Card } from "./card";
 
@@ -32,9 +32,14 @@ export function CourseCard({
         <div className={cx("shrink-0 overflow-hidden rounded-sm", stacked ? "size-18" : "size-12")}>{icon}</div>
         <div className="min-w-0">
           <h3 className={stacked ? "font-display text-h2 font-normal" : "text-h3 font-semibold"}>
-            <Link href={href} className="after:absolute after:inset-0 after:rounded-lg">
+            <TrackedLink
+              href={href}
+              eventName="course_selected"
+              eventProperties={{ course_path: href, card_layout: layout }}
+              className="after:absolute after:inset-0 after:rounded-lg"
+            >
               {title}
-            </Link>
+            </TrackedLink>
           </h3>
           <p className={cx("text-body text-neutral-500", stacked ? "mt-4 leading-6" : "mt-1")}>{description}</p>
         </div>
