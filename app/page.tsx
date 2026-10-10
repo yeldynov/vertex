@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { ArrowRight, Star } from "lucide-react";
 import { CourseGrid } from "@/components/course-grid";
-import { SearchShortcut } from "@/components/search-shortcut";
+import { HomeSearchForm } from "@/components/home-search-form";
 import { PageFrame } from "@/components/page-frame";
 import { buttonClasses } from "@/components/ui/button";
-import { SearchInput } from "@/components/ui/input";
 import { sanityFetch } from "@/sanity/lib/client";
 import { COURSES_QUERY } from "@/sanity/queries";
 
@@ -28,13 +27,7 @@ export default async function Home() {
           Explore Courses
           <ArrowRight aria-hidden className="size-5" />
         </Link>
-        <form action="/search" role="search" className="mx-auto mt-11 max-w-3xl xl:max-w-4xl text-left">
-          <label htmlFor="home-search" className="sr-only">
-            Search your learning
-          </label>
-          <SearchInput id="home-search" name="q" required placeholder="Ask anything about your learning..." shortcut="⌘ K" large />
-          <SearchShortcut id="home-search" />
-        </form>
+        <HomeSearchForm />
       </section>
 
       <section aria-labelledby="all-courses" className="px-4 pt-14 sm:px-13 xl:px-20">

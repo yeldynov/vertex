@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Show } from "@clerk/nextjs";
 import {
@@ -26,6 +25,7 @@ import {
   Zap,
 } from "lucide-react";
 import { PageFrame } from "@/components/page-frame";
+import { TrackedButton, TrackedLink } from "@/components/posthog-events";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { buttonClasses } from "@/components/ui/button";
@@ -77,10 +77,15 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
   // ponytail: no progress store yet; the progress task supplies real % and the resume lesson.
   const progress = 0;
   const cta = firstLesson && (
-    <Link href={lessonHref(firstLesson.slug)} className={`${buttonClasses("primary", "lg")} h-13 px-6 font-normal shadow-md`}>
+    <TrackedLink
+      href={lessonHref(firstLesson.slug)}
+      eventName="course_started"
+      eventProperties={{ course_slug: slug }}
+      className={`${buttonClasses("primary", "lg")} h-13 px-6 font-normal shadow-md`}
+    >
       Start Learning
       <ArrowRight aria-hidden className="size-5" />
-    </Link>
+    </TrackedLink>
   );
 
   return (
@@ -151,10 +156,15 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
             <div className="mt-8 flex flex-wrap gap-4">
               {cta}
               {/* Presentational only: bookmarks have no backend. */}
-              <button type="button" className={`${buttonClasses("tertiary", "lg")} h-13 px-5 font-normal`}>
+              <TrackedButton
+                type="button"
+                eventName="course_bookmarked"
+                eventProperties={{ course_slug: slug }}
+                className={`${buttonClasses("tertiary", "lg")} h-13 px-5 font-normal`}
+              >
                 <Bookmark aria-hidden className="size-5" />
                 Bookmark
-              </button>
+              </TrackedButton>
             </div>
           </div>
         </section>
@@ -213,8 +223,15 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
                     <ol className="border-t border-neutral-100 pb-2 sm:pl-16">
                       {module.lessons?.map((lesson, l) => (
                         <li key={lesson._id}>
-                          <Link
+                          <TrackedLink
                             href={lessonHref(lesson.slug)}
+                            eventName="lesson_selected"
+                            eventProperties={{
+                              course_slug: slug,
+                              module_index: m + 1,
+                              lesson_index: l + 1,
+                              is_free_preview: Boolean(lesson.freePreview),
+                            }}
                             className="flex items-center gap-4 px-4 py-2.5 text-body hover:bg-neutral-50 sm:px-5"
                           >
                             <span className="w-20 shrink-0 text-small text-neutral-500">{lessonLabel(m, l)}</span>
@@ -223,7 +240,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
                             {lesson.duration != null && (
                               <span className="shrink-0 text-small text-neutral-500">{formatDuration(lesson.duration)}</span>
                             )}
-                          </Link>
+                          </TrackedLink>
                         </li>
                       ))}
                     </ol>
