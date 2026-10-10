@@ -60,6 +60,7 @@ export const LESSON_QUERY = defineQuery(`
       title,
       "slug": slug.current,
       coverImage,
+      level,
       instructor->{ name, "slug": slug.current, photo, expertise },
       modules[] {
         _key,
