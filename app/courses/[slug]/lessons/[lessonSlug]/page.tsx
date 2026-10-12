@@ -1,29 +1,19 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Show } from "@clerk/nextjs";
 import { PortableText, type PortableTextComponents } from "next-sanity";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Bookmark,
-  ChartNoAxesColumnIncreasing,
-  ChevronDown,
-  CircleCheck,
-  Clock,
-  Lightbulb,
-  Play,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, Bookmark, ChevronDown, CircleCheck, Lightbulb, Play } from "lucide-react";
 import { PageFrame } from "@/components/page-frame";
 import { TrackedButton, TrackedLink } from "@/components/posthog-events";
 import { ResourceCard } from "@/components/cards/resource-card";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { buttonClasses } from "@/components/ui/button";
-import { ProgressBar } from "@/components/ui/progress-bar";
+import { GrooveBar } from "@/components/ui/groove-bar";
+import { DuotoneImage, toneClasses } from "@/components/ui/sleeve";
 import { cx } from "@/lib/cx";
-import { formatCount, formatDuration, lessonLabel } from "@/lib/course";
+import { courseTone, formatCount, formatDuration, lessonLabel } from "@/lib/course";
+import { formatTimestamp } from "@/lib/search";
 import { embedUrl, parseStart } from "@/lib/video";
 import { sanityFetch } from "@/sanity/lib/client";
 import { urlFor } from "@/sanity/lib/image";
@@ -43,9 +33,9 @@ const resourceLabels = {
 const notesComponents: PortableTextComponents = {
   block: {
     normal: ({ children }) => <p className="mt-4 first:mt-0">{children}</p>,
-    h2: ({ children }) => <h3 className="mt-6 text-body-lg font-medium text-neutral-900">{children}</h3>,
-    h3: ({ children }) => <h4 className="mt-5 font-medium text-neutral-900">{children}</h4>,
-    blockquote: ({ children }) => <blockquote className="mt-4 border-l-2 border-primary-300 pl-4">{children}</blockquote>,
+    h2: ({ children }) => <h3 className="mt-8 font-display text-h3 font-bold text-ink">{children}</h3>,
+    h3: ({ children }) => <h4 className="mt-6 font-semibold text-ink">{children}</h4>,
+    blockquote: ({ children }) => <blockquote className="mt-4 border-l border-amber pl-4 text-ramp-9 italic">{children}</blockquote>,
   },
   list: {
     bullet: ({ children }) => <ul className="mt-3 list-disc space-y-1.5 pl-5">{children}</ul>,
@@ -53,7 +43,7 @@ const notesComponents: PortableTextComponents = {
   },
   marks: {
     link: ({ value, children }) => (
-      <a href={value?.href} target="_blank" rel="noreferrer" className="text-primary-500 underline underline-offset-2">
+      <a href={value?.href} target="_blank" rel="noreferrer" className="text-amber underline decoration-amber/40 hover:decoration-amber">
         {children}
       </a>
     ),
@@ -84,6 +74,7 @@ export default async function LessonPage({ params, searchParams }: Props) {
   const { course } = lesson;
   const courseHref = `/courses/${course.slug}`;
   const lessonHref = (lessonSlug: string | null) => `${courseHref}/lessons/${lessonSlug}`;
+  const tone = courseTone(course.slug);
 
   // Lessons flattened in course order; module/lesson labels and prev/next derive from it.
   const modules = course.modules ?? [];
@@ -94,11 +85,15 @@ export default async function LessonPage({ params, searchParams }: Props) {
   const [prev, next] = [flat[index - 1], flat[index + 1]];
   const currentModule = modules[current.m];
 
-  const src = lesson.videoUrl ? embedUrl(lesson.videoUrl, parseStart((await searchParams).t)) : null;
-  const subtitle = lesson.notes
-    ?.find((block) => block.style === "normal" && !block.listItem)
-    ?.children?.map((span) => span.text)
-    .join("");
+  const start = parseStart((await searchParams).t);
+  const src = lesson.videoUrl ? embedUrl(lesson.videoUrl, start) : null;
+  const chapters = (lesson.chapters ?? []).filter((c): c is { startSeconds: number; label: string | null } => c.startSeconds != null);
+  // The chapter playing at `start`: the last one that begins at or before it.
+  const playingChapter = start ? chapters.findLast((c) => c.startSeconds <= start) : undefined;
+  // The first plain paragraph is set under the title, so the notes below start after it.
+  const lead = lesson.notes?.find((block) => block.style === "normal" && !block.listItem);
+  const subtitle = lead?.children?.map((span) => span.text).join("");
+  const notesBody = lesson.notes?.filter((block) => block !== lead) ?? [];
   // ponytail: no progress store yet; the progress task supplies real % and completion marks.
   const progress = 0;
 
@@ -108,24 +103,21 @@ export default async function LessonPage({ params, searchParams }: Props) {
       eventName="lesson_navigated"
       eventProperties={{ course_slug: course.slug, lesson_slug: item.slug, direction }}
       className={cx(
-        "flex items-center gap-5 sm:gap-7",
+        "group/nav flex min-w-0 items-center gap-4 rounded-lg p-1 sm:gap-5",
         direction === "next" && "ml-auto flex-row-reverse text-right",
       )}
     >
-      <span
-        className={cx(
-          buttonClasses(direction === "next" ? "primary" : "tertiary", "lg"),
-          "h-13 shrink-0 px-6 font-normal",
-          direction === "next" && "shadow-md",
-        )}
-      >
+      <span className={cx(buttonClasses(direction === "next" ? "primary" : "tertiary", "lg"), "shrink-0")}>
         {direction === "previous" && <ArrowLeft aria-hidden className="size-5" />}
-        <span className="max-sm:sr-only">{direction === "next" ? "Next Lesson" : "Previous Lesson"}</span>
+        <span className="max-sm:sr-only">{direction === "next" ? "Next lesson" : "Previous lesson"}</span>
         {direction === "next" && <ArrowRight aria-hidden className="size-5" />}
       </span>
-      <span className="min-w-0 text-small text-neutral-500">
-        <span className="block truncate text-body text-neutral-700">{item.title}</span>
-        {item.duration != null && <span className="mt-1 block">{formatDuration(item.duration)}</span>}
+      <span className="min-w-0 text-small text-muted">
+        <span className="block truncate text-body text-ramp-9 group-hover/nav:text-ink">{item.title}</span>
+        <span className="mt-0.5 block tabular-nums">
+          {item.m + 1}.{item.l + 1}
+          {item.duration != null && <> · {formatDuration(item.duration)}</>}
+        </span>
       </span>
     </TrackedLink>
   );
@@ -133,98 +125,85 @@ export default async function LessonPage({ params, searchParams }: Props) {
   return (
     <PageFrame
       footer={
-        <div className="relative px-4 pt-8 pb-10 sm:px-10 xl:px-16">
-          <div className="flex flex-col gap-4 rounded-lg border border-neutral-200 bg-white p-4 shadow-md sm:flex-row sm:items-center sm:gap-10 sm:px-6">
+        <div className="px-4 pt-12 sm:px-8 xl:px-12">
+          <div className="flex flex-col gap-3 rounded-xl bg-surface p-3 sm:flex-row sm:items-center sm:gap-10">
             {prev && navLink(prev, "previous")}
             {next && navLink(next, "next")}
           </div>
         </div>
       }
     >
-      <div className="lg:grid lg:grid-cols-[19.5rem_minmax(0,1fr)]">
-        <aside className="group/nav border-neutral-200 max-lg:border-b lg:border-r" aria-label="Course lessons">
-          <div className="px-4 pt-6 sm:px-6 lg:pt-10">
-            <Link href={courseHref} className="inline-flex items-center gap-2 text-body-lg text-primary-500 hover:text-primary-600">
-              <ArrowLeft aria-hidden className="size-4" />
-              Back to course
-            </Link>
-            <div className="mt-8 flex items-center gap-4">
-              {course.coverImage?.asset && (
-                <Image
-                  src={urlFor(course.coverImage).width(104).height(104).fit("crop").url()}
-                  alt=""
-                  width={52}
-                  height={52}
-                  className="size-13 shrink-0 rounded-sm object-cover"
-                />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="text-body-lg font-medium">{course.title}</p>
-                <Show when="signed-in">
-                  <p className="mt-1 text-small text-neutral-500">{progress}% complete</p>
-                  <ProgressBar value={progress} showLabel={false} className="mt-2 w-18" />
-                </Show>
-              </div>
+      <div className="lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:gap-10 lg:px-8 lg:pt-8 xl:px-12">
+        <aside className="group/nav lg:sticky lg:top-26 lg:max-h-[calc(100dvh-7.5rem)] lg:self-start lg:overflow-y-auto lg:rounded-xl lg:bg-surface" aria-label="Course lessons">
+          <div className={cx("flex items-center gap-4 p-4 sm:px-8 lg:rounded-t-xl lg:p-5", toneClasses[tone])}>
+            {course.coverImage?.asset && (
+              <span className="relative size-14 shrink-0 overflow-hidden rounded-sm bg-inherit ring-1 ring-ramp-0/30 brightness-[0.62] saturate-150">
+                <DuotoneImage src={urlFor(course.coverImage).width(112).height(112).fit("crop").url()} sizes="56px" />
+              </span>
+            )}
+            <div className="min-w-0 flex-1">
+              <Link href={courseHref} className="inline-flex items-center gap-1.5 rounded-xs text-small font-semibold opacity-90 hover:opacity-100">
+                <ArrowLeft aria-hidden className="size-3.5" />
+                Back to course
+              </Link>
+              <p className="mt-1 font-display text-body-lg leading-tight font-bold text-balance">{course.title}</p>
+              <Show when="signed-in">
+                <p className="mt-1 text-small tabular-nums opacity-90">{progress}% complete</p>
+              </Show>
             </div>
           </div>
 
-          <label className="mt-6 flex cursor-pointer items-center justify-between border-y border-neutral-200 px-4 py-4 text-body sm:px-6 lg:cursor-default has-focus-visible:outline-2 has-focus-visible:outline-primary-400">
-            <input type="checkbox" className="peer sr-only lg:hidden" />
+          <label className="flex cursor-pointer items-center justify-between border-b border-line bg-surface px-4 py-4 text-body sm:px-8 lg:hidden has-focus-visible:outline-2 has-focus-visible:outline-amber">
+            <input type="checkbox" className="peer sr-only" />
             Module {current.m + 1} of {modules.length}
-            <ChevronDown aria-hidden className="size-5 text-neutral-500 transition-transform peer-checked:rotate-180 lg:hidden" />
+            <ChevronDown aria-hidden className="size-5 text-muted transition-transform peer-checked:rotate-180" />
           </label>
 
-          <ol className="divide-y divide-neutral-200 max-lg:hidden max-lg:group-has-checked/nav:block lg:border-b lg:border-neutral-200">
+          <ol className="max-lg:hidden max-lg:bg-surface max-lg:group-has-checked/nav:block lg:pb-3">
             {modules.map((module, m) => {
               const isCurrent = m === current.m;
               const seconds = module.lessons?.reduce((sum, l) => sum + (l.duration ?? 0), 0) ?? 0;
               return (
-                <li key={module._key} className={cx(isCurrent && "bg-primary-100/40")}>
+                <li key={module._key} className="border-b border-line last:border-b-0">
                   <details open={isCurrent} className="group/module">
-                    <summary className="flex cursor-pointer list-none items-center gap-4 px-4 py-4 sm:px-6 [&::-webkit-details-marker]:hidden">
-                      <span
-                        className={cx(
-                          "grid size-8 shrink-0 place-items-center rounded-full border text-body",
-                          isCurrent ? "border-primary-500 bg-primary-500 text-white" : "border-neutral-200 bg-white",
-                        )}
-                      >
+                    <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 hover:bg-raised sm:px-8 lg:px-5 [&::-webkit-details-marker]:hidden">
+                      <span className={cx("w-6 shrink-0 font-display text-h3 font-extrabold tabular-nums", isCurrent ? "text-amber" : "text-muted")}>
                         {m + 1}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className={cx("block text-body font-medium", isCurrent && "text-primary-500")}>{module.title}</span>
-                        {seconds > 0 && <span className="mt-0.5 block text-small text-neutral-500">{formatDuration(seconds)}</span>}
+                        <span className={cx("block text-body font-semibold", !isCurrent && "text-ramp-9")}>{module.title}</span>
+                        {seconds > 0 && <span className="mt-0.5 block text-small text-muted tabular-nums">{formatDuration(seconds)}</span>}
                       </span>
-                      <ChevronDown aria-hidden className="size-4 shrink-0 text-neutral-500 transition-transform group-open/module:rotate-180" />
+                      <ChevronDown aria-hidden className="size-4 shrink-0 text-muted transition-transform group-open/module:rotate-180" />
                     </summary>
-                    <ol className="relative ml-8 pb-3 before:absolute before:inset-y-2 before:left-0 before:border-l before:border-neutral-200 sm:ml-10">
+                    <ol className="px-2 pb-3 sm:px-6 lg:px-2">
                       {module.lessons?.map((item, l) => {
                         const playing = item._id === lesson._id;
                         return (
-                          <li key={item._id} className="relative">
-                            <span
-                              aria-hidden
-                              className={cx(
-                                "absolute top-4 -left-[3px] size-1.5 rounded-full",
-                                playing ? "bg-primary-500" : "border border-neutral-300 bg-white",
-                              )}
-                            />
+                          <li key={item._id}>
                             <Link
                               href={lessonHref(item.slug)}
                               aria-current={playing ? "page" : undefined}
-                              className="flex items-center gap-3 py-2 pr-4 pl-6 text-body hover:text-primary-500 sm:pr-6"
+                              className={cx(
+                                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-body transition-colors",
+                                playing ? "bg-raised text-ink" : "text-ramp-9 hover:bg-raised hover:text-ink",
+                              )}
                             >
-                              <span className="min-w-0 flex-1">
-                                <span className={cx("block", playing ? "text-neutral-900" : "text-neutral-700")}>
-                                  <span className="sr-only">{lessonLabel(m, l)}: </span>
-                                  {item.title}
+                              <span className={cx("w-8 shrink-0 text-small font-semibold tabular-nums", playing ? "text-amber" : "text-muted")}>
+                                <span className="sr-only">{lessonLabel(m, l)}: </span>
+                                <span aria-hidden>
+                                  {m + 1}.{l + 1}
                                 </span>
-                                <span className={cx("mt-0.5 block text-small", playing ? "text-primary-500" : "text-neutral-500")}>
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block">{item.title}</span>
+                                <span className={cx("mt-0.5 block text-small tabular-nums", playing ? "text-amber" : "text-muted")}>
                                   {playing ? "Now playing" : item.duration != null && formatDuration(item.duration)}
                                 </span>
                               </span>
                               {playing && (
-                                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary-500 text-white">
-                                  <Play aria-hidden className="size-3 fill-current" />
+                                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-amber text-on-amber">
+                                  <Play aria-hidden className="size-3 translate-x-px fill-current" />
                                 </span>
                               )}
                             </Link>
@@ -239,7 +218,7 @@ export default async function LessonPage({ params, searchParams }: Props) {
           </ol>
         </aside>
 
-        <div className="min-w-0 px-4 pt-8 sm:px-10 lg:pt-10 xl:px-12">
+        <div className="min-w-0 px-4 pt-8 sm:px-8 lg:px-0 lg:pt-0">
           <Breadcrumbs
             items={[
               { label: "All Courses", href: "/courses" },
@@ -249,15 +228,23 @@ export default async function LessonPage({ params, searchParams }: Props) {
             ]}
           />
 
-          <div className="mt-10 flex items-start justify-between gap-6">
+          <div className="mt-6 flex items-start justify-between gap-6">
             <div className="min-w-0">
-              <span className="inline-flex items-center rounded-xs bg-primary-100 px-2 py-0.5 text-small font-semibold tracking-wider text-primary-500 uppercase">
-                {lessonLabel(current.m, current.l)}
-              </span>
-              <h1 className="mt-5 font-display text-display-2 font-medium tracking-tight md:text-[2.75rem] md:leading-[3.25rem]">
+              <h1 className="font-display text-[clamp(2rem,4vw,3.25rem)] leading-[1.02] font-extrabold tracking-[-0.03em] text-balance">
                 {lesson.title}
               </h1>
-              {subtitle && <p className="mt-4 max-w-2xl text-body-lg leading-7 text-neutral-500">{subtitle}</p>}
+              {subtitle && <p className="mt-4 max-w-[62ch] text-body-lg text-muted">{subtitle}</p>}
+              <p className="mt-4 flex flex-wrap gap-x-2 text-small text-muted tabular-nums">
+                <span className="font-semibold text-amber">{lessonLabel(current.m, current.l)}</span>
+                {[lesson.duration != null && formatDuration(lesson.duration), course.level && course.level[0].toUpperCase() + course.level.slice(1), lesson.studentCount != null && `${formatCount(lesson.studentCount)} students`]
+                  .filter(Boolean)
+                  .map((part, i) => (
+                    <span key={i}>
+                      <span aria-hidden className="mr-2">·</span>
+                      {part}
+                    </span>
+                  ))}
+              </p>
             </div>
             {/* Presentational only: bookmarks have no backend. */}
             <TrackedButton
@@ -265,36 +252,16 @@ export default async function LessonPage({ params, searchParams }: Props) {
               aria-label="Bookmark lesson"
               eventName="lesson_bookmarked"
               eventProperties={{ course_slug: course.slug, lesson_slug: lesson.slug }}
-              className="grid size-10 shrink-0 place-items-center rounded-sm border border-neutral-200 bg-white text-primary-500 hover:border-neutral-300"
+              className="grid size-11 shrink-0 place-items-center rounded-full bg-raised text-amber transition-colors hover:bg-ramp-4"
             >
               <Bookmark aria-hidden className="size-5" />
             </TrackedButton>
           </div>
 
-          <ul className="mt-6 flex flex-wrap gap-x-8 gap-y-3 text-body text-neutral-700 [&_svg]:size-5 [&_svg]:text-neutral-500">
-            {lesson.duration != null && (
-              <li className="flex items-center gap-2">
-                <Clock aria-hidden />
-                {formatDuration(lesson.duration)}
-              </li>
-            )}
-            {course.level && (
-              <li className="flex items-center gap-2 capitalize">
-                <ChartNoAxesColumnIncreasing aria-hidden />
-                {course.level}
-              </li>
-            )}
-            {lesson.studentCount != null && (
-              <li className="flex items-center gap-2">
-                <Users aria-hidden />
-                {formatCount(lesson.studentCount)} students
-              </li>
-            )}
-          </ul>
-
-          <div className="mt-8 aspect-video overflow-hidden rounded-lg bg-neutral-900 shadow-lg">
+          <div className="mt-8 aspect-video overflow-hidden rounded-xl bg-ramp-0 shadow-[0_24px_48px_-20px_rgb(0_0_0/0.8)]">
             {src ? (
               <iframe
+                key={start}
                 src={src}
                 title={lesson.title ?? "Lesson video"}
                 allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
@@ -302,19 +269,56 @@ export default async function LessonPage({ params, searchParams }: Props) {
                 className="size-full border-0"
               />
             ) : (
-              <p className="grid size-full place-items-center text-body text-neutral-300">Video unavailable</p>
+              <p className="grid size-full place-items-center text-body text-muted">Video unavailable</p>
             )}
           </div>
 
+          {lesson.duration != null && lesson.duration > 0 && (
+            <section aria-labelledby="chapters" className="mt-6 rounded-xl bg-surface p-4 sm:p-5">
+              <div className="flex items-baseline justify-between gap-4">
+                <h2 id="chapters" className="text-body font-semibold">
+                  {chapters.length ? "Chapters" : "Lesson length"}
+                </h2>
+                <span className="text-small text-muted tabular-nums">{formatTimestamp(lesson.duration)}</span>
+              </div>
+              <GrooveBar duration={lesson.duration} at={start || null} chapters={chapters} className="mt-3" />
+              {chapters.length > 0 && (
+                <ol className="mt-4 grid gap-x-6 gap-y-0.5 sm:grid-cols-2">
+                  {chapters.map((chapter) => {
+                    const here = chapter === playingChapter;
+                    return (
+                      <li key={chapter.startSeconds}>
+                        <Link
+                          href={`${lessonHref(lesson.slug)}?t=${chapter.startSeconds}`}
+                          scroll={false}
+                          aria-current={here ? "true" : undefined}
+                          className={cx(
+                            "flex gap-3 rounded-md px-2 py-1.5 text-body transition-colors hover:bg-raised",
+                            here ? "text-ink" : "text-ramp-9",
+                          )}
+                        >
+                          <span className={cx("w-12 shrink-0 font-semibold tabular-nums", here ? "text-amber" : "text-muted")}>
+                            {formatTimestamp(chapter.startSeconds)}
+                          </span>
+                          <span className="min-w-0">{chapter.label}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+            </section>
+          )}
+
           <div className="group/tabs mt-10">
-            <div className="flex gap-2 border-b border-neutral-200 font-display text-body-lg">
+            <div className="flex gap-1 border-b border-line">
               {[
-                ["content", "Lesson Content"],
+                ["content", "Lesson content"],
                 ["notes", "Notes"],
               ].map(([id, label]) => (
                 <label
                   key={id}
-                  className="-mb-px cursor-pointer border-b-2 border-transparent px-5 pb-3 text-neutral-700 has-checked:border-primary-500 has-checked:text-primary-500 has-focus-visible:outline-2 has-focus-visible:outline-primary-400"
+                  className="-mb-px cursor-pointer border-b-2 border-transparent px-4 pb-3 text-body font-semibold text-muted transition-colors hover:text-ink has-checked:border-amber has-checked:text-ink has-focus-visible:outline-2 has-focus-visible:outline-amber"
                 >
                   <input type="radio" name="lesson-tab" id={`tab-${id}`} defaultChecked={id === "content"} className="sr-only" />
                   {label}
@@ -323,26 +327,23 @@ export default async function LessonPage({ params, searchParams }: Props) {
             </div>
 
             <div className="group-has-[#tab-notes:checked]/tabs:hidden">
-              {!!lesson.notes?.length && (
-                <section aria-labelledby="overview" className="border-b border-neutral-200 px-1 py-8 sm:px-5">
-                  <h2 id="overview" className="font-display text-h2 font-normal">
-                    Overview
-                  </h2>
-                  <div className="mt-4 max-w-2xl text-body leading-6 text-neutral-500">
-                    <PortableText value={lesson.notes} components={notesComponents} />
+              {notesBody.length > 0 && (
+                <section aria-label="Lesson notes" className="border-b border-line py-6">
+                  <div className="max-w-[62ch] text-body-lg text-ramp-9 [&>h3:first-child]:mt-0">
+                    <PortableText value={notesBody} components={notesComponents} />
                   </div>
                 </section>
               )}
 
               {!!lesson.keyPoints?.length && (
-                <section aria-labelledby="key-points" className="px-1 pt-8 sm:px-5">
-                  <h2 id="key-points" className="text-body-lg font-medium">
-                    In this lesson you will:
+                <section aria-labelledby="key-points" className="pt-8">
+                  <h2 id="key-points" className="font-display text-h3 font-bold">
+                    In this lesson you will
                   </h2>
-                  <ul className="mt-5 space-y-4 text-body text-neutral-700">
+                  <ul className="mt-5 max-w-[62ch] space-y-3 text-body-lg text-ramp-9">
                     {lesson.keyPoints.map((point) => (
-                      <li key={point} className="flex items-center gap-3">
-                        <CircleCheck aria-hidden className="size-5 shrink-0 text-primary-500" />
+                      <li key={point} className="flex gap-3">
+                        <CircleCheck aria-hidden className="mt-1 size-5 shrink-0 text-amber" />
                         {point}
                       </li>
                     ))}
@@ -351,21 +352,21 @@ export default async function LessonPage({ params, searchParams }: Props) {
               )}
 
               {lesson.proTip && (
-                <aside className="mx-1 mt-8 flex gap-4 rounded-md border border-primary-200/60 bg-primary-100/50 p-5 sm:mx-5">
-                  <Lightbulb aria-hidden className="size-6 shrink-0 text-primary-500" />
+                <aside className="mt-8 flex max-w-[70ch] gap-4 rounded-xl bg-amber/10 p-5">
+                  <Lightbulb aria-hidden className="size-6 shrink-0 text-amber" />
                   <div>
-                    <h2 className="text-body-lg font-medium">Pro Tip</h2>
-                    <p className="mt-2 text-body leading-6 text-neutral-500">{lesson.proTip}</p>
+                    <h2 className="text-body-lg font-semibold text-amber-hi">Pro tip</h2>
+                    <p className="mt-2 text-body text-ramp-9">{lesson.proTip}</p>
                   </div>
                 </aside>
               )}
 
               {!!lesson.resources?.length && (
-                <section aria-labelledby="resources" className="mt-8 border-t border-neutral-200 px-1 pt-6 sm:px-5">
-                  <h2 id="resources" className="font-display text-h3 font-medium">
+                <section aria-labelledby="resources" className="mt-10 border-t border-line pt-8">
+                  <h2 id="resources" className="font-display text-h3 font-bold">
                     Resources
                   </h2>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     {lesson.resources.map((resource) => (
                       <ResourceCard
                         key={resource._key}
@@ -381,7 +382,7 @@ export default async function LessonPage({ params, searchParams }: Props) {
             </div>
 
             {/* Presentational only: personal notes have no backend. */}
-            <div className="hidden px-1 py-10 text-body text-neutral-500 group-has-[#tab-notes:checked]/tabs:block sm:px-5">
+            <div className="hidden py-10 text-body text-muted group-has-[#tab-notes:checked]/tabs:block">
               Personal notes are coming soon.
             </div>
           </div>

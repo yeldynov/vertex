@@ -1,10 +1,8 @@
 import type { ReactNode } from "react";
-import { ChartNoAxesColumnIncreasing, Clock, File, Folder } from "lucide-react";
 import { TrackedLink } from "@/components/posthog-events";
-import { cx } from "@/lib/cx";
 import { Card } from "./card";
 
-/** `row`: icon beside the text (design system). `stacked`: icon on top, serif title (home grid). */
+/** Compact course row: art beside the title (design system, instructor lists). The shelf uses `Sleeve`. */
 export function CourseCard({
   href,
   icon,
@@ -13,7 +11,6 @@ export function CourseCard({
   level,
   duration,
   moduleCount,
-  layout = "row",
 }: {
   href: string;
   icon: ReactNode;
@@ -22,49 +19,28 @@ export function CourseCard({
   level: string;
   duration: string;
   moduleCount: number;
-  layout?: "row" | "stacked";
 }) {
-  const stacked = layout === "stacked";
-  const ModulesIcon = stacked ? File : Folder;
   return (
-    <Card className={cx("relative gap-5 transition-shadow hover:shadow-md", stacked && "p-6")}>
-      <div className={cx("flex gap-4", stacked && "flex-col gap-5")}>
-        <div className={cx("shrink-0 overflow-hidden rounded-sm", stacked ? "size-18" : "size-12")}>{icon}</div>
+    <Card className="relative gap-4 transition-colors hover:bg-raised">
+      <div className="flex gap-4">
+        <div className="size-14 shrink-0 overflow-hidden rounded-md">{icon}</div>
         <div className="min-w-0">
-          <h3 className={stacked ? "font-display text-h2 font-normal" : "text-h3 font-semibold"}>
+          <h3 className="font-display text-h3 font-bold">
             <TrackedLink
               href={href}
               eventName="course_selected"
-              eventProperties={{ course_path: href, card_layout: layout }}
-              className="after:absolute after:inset-0 after:rounded-lg"
+              eventProperties={{ course_path: href, card_layout: "row" }}
+              className="rounded-xs after:absolute after:inset-0 after:rounded-xl"
             >
               {title}
             </TrackedLink>
           </h3>
-          <p className={cx("text-body text-neutral-500", stacked ? "mt-4 leading-6" : "mt-1")}>{description}</p>
+          <p className="mt-1 text-body text-muted">{description}</p>
         </div>
       </div>
-      <ul
-        className={cx(
-          "mt-auto flex gap-y-2 text-neutral-700",
-          stacked
-            ? "-mx-2 justify-between gap-x-2 border-t border-neutral-200 pt-5 text-[0.6875rem] whitespace-nowrap *:gap-1 [&_svg]:size-3.5"
-            : "flex-wrap gap-x-5 text-small",
-        )}
-      >
-        <li className="flex items-center gap-1.5">
-          <ChartNoAxesColumnIncreasing aria-hidden className="size-4" />
-          {level}
-        </li>
-        <li className="flex items-center gap-1.5">
-          <Clock aria-hidden className="size-4" />
-          {duration}
-        </li>
-        <li className="flex items-center gap-1.5">
-          <ModulesIcon aria-hidden className="size-4" />
-          {moduleCount} modules
-        </li>
-      </ul>
+      <p className="mt-auto text-small text-muted tabular-nums">
+        {[level, duration, `${moduleCount} modules`].filter(Boolean).join(" · ")}
+      </p>
     </Card>
   );
 }

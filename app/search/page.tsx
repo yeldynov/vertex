@@ -19,21 +19,19 @@ export default async function SearchPage({ searchParams }: Props) {
 
   return (
     <PageFrame>
-      <section className="mx-auto max-w-5xl px-4 pt-12 sm:px-10 sm:pt-14">
-        <div className="text-center">
-          <p className="inline-block rounded-sm border border-primary-200 bg-primary-100/40 px-3 py-1.5 text-small font-semibold tracking-[0.15em] text-primary-600 uppercase">
-            Search results
-          </p>
-          <h1 className="mt-5 font-display text-display-2 font-medium tracking-tight break-words sm:text-display-1">
-            {q ? (
-              <>
-                Results for <span className="text-primary-500">“{q}”</span>
-              </>
-            ) : (
-              "Search your learning"
-            )}
-          </h1>
-        </div>
+      <section className="mx-auto max-w-6xl px-4 pt-10 sm:px-8 sm:pt-14">
+        <h1 className="font-display text-[clamp(2.5rem,6vw,4.5rem)] leading-none font-extrabold tracking-[-0.035em] break-words text-balance">
+          {q ? (
+            <>
+              <span className="sr-only">Results for </span>
+              <span className="text-amber">“</span>
+              {q}
+              <span className="text-amber">”</span>
+            </>
+          ) : (
+            "Search your learning"
+          )}
+        </h1>
         <SearchResults key={q} q={q} />
       </section>
     </PageFrame>

@@ -1,80 +1,121 @@
 @import "tailwindcss";
 
 @theme {
-  /* Colors — only the Vertex palette exists */
+  /* Colors: "Listening Room". One warm 11-step ramp, darkest to lightest; every neutral comes from it. */
   --color-*: initial;
-  --color-white: #ffffff;
+  --color-ramp-0: #0f0b09;
+  --color-ramp-1: #15110e; /* ground */
+  --color-ramp-2: #1d1814; /* surface */
+  --color-ramp-3: #27201b; /* raised */
+  --color-ramp-4: #332a23; /* line */
+  --color-ramp-5: #4a3e34; /* strong line */
+  --color-ramp-6: #6b5d50; /* faint, disabled */
+  --color-ramp-7: #a39482; /* muted text, AA on ramp 1–3 */
+  --color-ramp-8: #c4b6a3;
+  --color-ramp-9: #dccfbd; /* soft text */
+  --color-ramp-10: #f4ebdd; /* ink */
 
-  --color-primary-100: #ffeee5;
-  --color-primary-200: #fed7aa;
-  --color-primary-300: #fdba74;
-  --color-primary-400: #fb923c;
-  --color-primary-500: #f97316;
-  --color-primary-600: #e4580b; /* hover; sampled from the design */
+  --color-ground: var(--color-ramp-1);
+  --color-surface: var(--color-ramp-2);
+  --color-raised: var(--color-ramp-3);
+  --color-line: var(--color-ramp-4);
+  --color-ink: var(--color-ramp-10);
+  --color-muted: var(--color-ramp-7);
 
-  --color-neutral-50: #fafafc;
-  --color-neutral-100: #f1f5f9;
-  --color-neutral-200: #e2e8f0;
-  --color-neutral-300: #cbd5e1;
-  --color-neutral-500: #64748b;
-  --color-neutral-700: #334155;
-  --color-neutral-900: #0f172a;
+  /* Amber: the one colour for action, the needle, and focus. */
+  --color-amber: #f2a541;
+  --color-amber-hi: #f7be6c;
+  --color-on-amber: #1a120a;
 
-  /* Semantic colors used in the design but not in its palette; sampled */
-  --color-canvas: #f9f5f3;
-  --color-success: #16a34a;
-  --color-lesson: #4f56c8;
-  --color-lesson-bg: #eeeffb;
+  /* Sleeve tones, one per course (hashed from the slug); each carries its own AA text colour. */
+  --color-tone-oxblood: #a83a34;
+  --color-tone-teal: #24726e;
+  --color-tone-mustard: #d9a520;
+  --color-tone-violet: #6150c4;
+  --color-tone-olive: #56702f;
+  --color-tone-rust: #b0552a;
+
+  /* State colours */
+  --color-success: #7fbf6a;
+  --color-lesson: #b9adf5;
+  --color-lesson-bg: #2a2440;
 
   /* Fonts (variables set by next/font in app/layout.tsx) */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-playfair), ui-serif, Georgia, serif;
+  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-hanken), ui-sans-serif, sans-serif;
 
-  /* Type scale — pair display sizes with font-display */
-  --text-display-1: 3rem;
-  --text-display-1--line-height: 3.5rem;
-  --text-display-1--font-weight: 700;
-  --text-display-2: 2.25rem;
-  --text-display-2--line-height: 2.75rem;
-  --text-display-2--font-weight: 700;
-  --text-h1: 1.75rem;
-  --text-h1--line-height: 2.25rem;
-  --text-h1--font-weight: 600;
-  --text-h2: 1.375rem;
-  --text-h2--line-height: 1.875rem;
-  --text-h2--font-weight: 600;
+  /* Type scale on the 8px module */
+  --text-display-1: 4.5rem;
+  --text-display-1--line-height: 4.5rem;
+  --text-display-1--font-weight: 800;
+  --text-display-1--letter-spacing: -0.035em;
+  --text-display-2: 3rem;
+  --text-display-2--line-height: 3.25rem;
+  --text-display-2--font-weight: 800;
+  --text-display-2--letter-spacing: -0.03em;
+  --text-h1: 2rem;
+  --text-h1--line-height: 2.5rem;
+  --text-h1--font-weight: 700;
+  --text-h2: 1.5rem;
+  --text-h2--line-height: 2rem;
+  --text-h2--font-weight: 700;
   --text-h3: 1.125rem;
-  --text-h3--line-height: 1.625rem;
-  --text-h3--font-weight: 500;
-  --text-body-lg: 1rem;
-  --text-body-lg--line-height: 1.5rem;
-  --text-body: 0.875rem;
-  --text-body--line-height: 1.25rem;
-  --text-small: 0.75rem;
-  --text-small--line-height: 1rem;
+  --text-h3--line-height: 1.5rem;
+  --text-h3--font-weight: 600;
+  --text-body-lg: 1.0625rem;
+  --text-body-lg--line-height: 1.625rem;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.5rem;
+  --text-small: 0.8125rem;
+  --text-small--line-height: 1.25rem;
 
-  /* Radius (rounded-full is built in) */
   --radius-xs: 4px;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
-  --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.1);
-  --shadow-xl: 0 20px 40px -8px rgba(15, 23, 42, 0.12);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
 
-  /* Spacing: Tailwind's default 4px base already matches the design scale */
+html {
+  color-scheme: dark;
+  scrollbar-color: var(--color-ramp-5) var(--color-ramp-1);
 }
 
 body {
-  background: var(--color-canvas);
-  color: var(--color-neutral-900);
+  background: var(--color-ground);
+  color: var(--color-ink);
+  caret-color: var(--color-amber);
+  font-feature-settings: "ss01";
+}
+
+::selection {
+  background: var(--color-amber);
+  color: var(--color-on-amber);
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-primary-400);
-  outline-offset: 2px;
+  outline: 2px solid var(--color-amber);
+  outline-offset: 3px;
+}
+
+a {
+  text-underline-offset: 0.2em;
+}
+
+/* The groove bar's needle settles onto its second. */
+@keyframes needle-in {
+  from {
+    left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

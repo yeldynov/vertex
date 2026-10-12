@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CirclePlay } from "lucide-react";
+import { Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "./card";
@@ -23,15 +23,15 @@ export function LessonVideoCard({
   return (
     <Card className="gap-3">
       <Badge kind="video" className="self-start" />
-      <h3 className="text-h3 font-semibold">{title}</h3>
-      <p className="text-body text-neutral-500">{description}</p>
-      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-3 text-small text-neutral-500">
+      <h3 className="font-display text-h3 font-bold">{title}</h3>
+      <p className="text-body text-muted">{description}</p>
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-3 text-small text-muted tabular-nums">
         <span>
           {lessonLabel} · {duration}
         </span>
         <Link href={href} className={buttonClasses("text")}>
-          Watch from {startLabel}
-          <CirclePlay aria-hidden className="size-4" />
+          <Play aria-hidden className="size-3.5 fill-current" />
+          Play from {startLabel}
         </Link>
       </div>
     </Card>

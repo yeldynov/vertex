@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatCount, formatDuration, lessonLabel, moduleLabel } from "./course.ts";
+import { courseTone, formatCount, formatDuration, lessonLabel, moduleLabel } from "./course.ts";
 
 test("labels and durations", () => {
   assert.equal(moduleLabel(4), "Module 5");
@@ -12,4 +12,9 @@ test("labels and durations", () => {
   assert.equal(formatCount(18240), "18.2k");
   assert.equal(formatCount(2100), "2.1k");
   assert.equal(formatCount(950), "950");
+});
+
+test("course tone is stable per slug", () => {
+  assert.equal(courseTone("nextjs-app-router"), courseTone("nextjs-app-router"));
+  assert.ok(["oxblood", "teal", "mustard", "violet", "olive", "rust"].includes(courseTone(null)));
 });

@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cx } from "@/lib/cx";
 import { getPageItems } from "@/lib/pagination";
 
-const item = "grid size-8 place-items-center rounded-sm text-body text-neutral-700";
+const item = "grid size-9 place-items-center rounded-full text-body text-ramp-9 tabular-nums";
 
 /** Link-based pagination; `hrefFor(page)` builds each page's URL. */
 export function Pagination({
@@ -18,11 +18,11 @@ export function Pagination({
   if (totalPages <= 1) return null;
   const arrow = (target: number, label: string, Icon: typeof ChevronLeft) =>
     target < 1 || target > totalPages ? (
-      <span aria-hidden className={cx(item, "text-neutral-300")}>
+      <span aria-hidden className={cx(item, "text-ramp-6")}>
         <Icon className="size-4" />
       </span>
     ) : (
-      <Link href={hrefFor(target)} aria-label={label} className={cx(item, "hover:bg-neutral-100")}>
+      <Link href={hrefFor(target)} aria-label={label} className={cx(item, "hover:bg-raised")}>
         <Icon className="size-4" />
       </Link>
     );
@@ -43,8 +43,8 @@ export function Pagination({
             className={cx(
               item,
               p === page
-                ? "border border-primary-500 bg-primary-100 font-medium text-primary-500"
-                : "hover:bg-neutral-100",
+                ? "bg-amber font-semibold text-on-amber"
+                : "hover:bg-raised",
             )}
           >
             {p}

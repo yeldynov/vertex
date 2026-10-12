@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { Show, SignInButton, UserButton } from "@clerk/nextjs";
+import { NavLink } from "@/components/nav-link";
 import { TrackedButton } from "@/components/posthog-events";
 import { buttonClasses } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 
 export function SiteHeader() {
   return (
-    <header className="border-b border-neutral-200">
-      <div className="flex h-20 items-center gap-4 px-4 sm:h-24 sm:gap-12 sm:px-10 xl:px-14">
-        <Link href="/" className="rounded-xs text-h2 font-semibold">
+    <header className="sticky top-0 z-30 border-b border-line bg-ground/90 backdrop-blur-md">
+      <div className="mx-auto flex h-16 max-w-360 items-center gap-3 px-4 sm:h-18 sm:gap-8 sm:px-8 xl:px-12">
+        <Link href="/" className="rounded-xs text-h2">
           <span className="sm:hidden">
             <Logo markOnly />
           </span>
@@ -17,17 +18,17 @@ export function SiteHeader() {
             <Logo />
           </span>
         </Link>
-        <nav aria-label="Main" className="flex gap-4 text-body text-neutral-900 sm:text-body-lg sm:gap-10">
-          <Link href="/courses" className="hover:text-primary-500">
-            Courses
-          </Link>
-          <Link href="/my-learning" className="whitespace-nowrap hover:text-primary-500">
-            My Learning
-          </Link>
+        <nav aria-label="Main" className="flex text-body sm:gap-2">
+          <NavLink href="/courses">Courses</NavLink>
+          <NavLink href="/my-learning">My Learning</NavLink>
         </nav>
-        <div className="ml-auto flex items-center gap-3 sm:gap-6">
-          <button type="button" aria-label="Notifications" className="rounded-full p-1 text-neutral-700 hover:text-neutral-900">
-            <Bell aria-hidden className="size-6" />
+        <div className="ml-auto flex items-center gap-2 sm:gap-4">
+          <button
+            type="button"
+            aria-label="Notifications"
+            className="grid size-9 place-items-center rounded-full text-muted sm:size-10 transition-colors hover:bg-raised hover:text-ink"
+          >
+            <Bell aria-hidden className="size-5" />
           </button>
           <Show when="signed-out">
             <SignInButton mode="modal">
@@ -37,7 +38,7 @@ export function SiteHeader() {
             </SignInButton>
           </Show>
           <Show when="signed-in">
-            <UserButton appearance={{ elements: { avatarBox: "size-10 ring-2 ring-white sm:size-13" } }} />
+            <UserButton appearance={{ elements: { avatarBox: "size-9 ring-2 ring-amber/60 sm:size-10" } }} />
           </Show>
         </div>
       </div>

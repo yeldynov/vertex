@@ -55,6 +55,7 @@ export const LESSON_QUERY = defineQuery(`
     keyPoints,
     proTip,
     resources[] { _key, type, title, description, url },
+    "chapters": *[_type == "video" && url == ^.videoUrl][0].chapters[] | order(startSeconds asc) { startSeconds, label },
     "course": *[_type == "course" && slug.current == $courseSlug && references(^._id)][0] {
       _id,
       title,
@@ -119,3 +120,22 @@ export const SEARCH_HIT_QUERY = defineQuery(`
     }
   }
 `);
+
+// Home: the shelf, plus lessons (with their video chapters) of the lead courses for the needle drop and suggestions.
+export const HOME_QUERY = defineQuery(`{
+  "courses": *[_type == "course" && defined(slug.current)] | order(popular desc, title asc) { ${COURSE_CARD} },
+  "lead": *[_type == "course" && defined(slug.current)] | order(popular desc, title asc)[0...4] {
+    title,
+    "slug": slug.current,
+    modules[] {
+      lessons[]->{
+        _id,
+        title,
+        "slug": slug.current,
+        duration,
+        poster,
+        "chapters": *[_type == "video" && url == ^.videoUrl][0].chapters[] | order(startSeconds asc) { startSeconds, label }
+      }
+    }
+  }
+}`);

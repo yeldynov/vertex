@@ -22,6 +22,8 @@ export type SearchResult = {
   startSeconds: number | null;
   /** Clip length for a video moment, lesson length for a lesson. */
   seconds: number;
+  /** The whole lesson's length, so the groove bar can draw the moment to scale. */
+  lessonSeconds: number;
 };
 
 type Image = NonNullable<NonNullable<SEARCH_HIT_QUERY_RESULT>["poster"]>;
@@ -54,6 +56,7 @@ export function groundHit(
     moduleTitle: modules[m].title ?? "",
     keyPoints: (lesson.keyPoints ?? []).slice(0, 3),
     thumbnail: cover && imageUrl(cover, 480, 270),
+    lessonSeconds: duration,
   };
 
   if (hit.kind === "lesson") {
