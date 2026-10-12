@@ -1,8 +1,8 @@
 import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
 import { google } from "@ai-sdk/google";
-import { isStepCount, Output, streamText } from "ai";
+import { Output, streamText } from "ai";
 import { z } from "zod";
-import { groundHit } from "@/lib/search";
+import { groundHit, searchTerms } from "@/lib/search";
 import { sanityFetch } from "@/sanity/lib/client";
 import { urlFor } from "@/sanity/lib/image";
 import { SEARCH_HIT_QUERY } from "@/sanity/queries";
@@ -16,38 +16,39 @@ const HitSchema = z.object({
   startSeconds: z.number().int().min(0).nullable(),
 });
 
-// Critical rules are repeated from the Context document: the model follows the system prompt more reliably.
-const SYSTEM_PROMPT = `You are the search engine for Vertex, a video learning platform. You do not chat.
-For the learner's query, find every relevant lesson and video moment with the groq_query tool, then return them ranked best first.
-
-## Query rules
-- Turn the query into keywords: drop stop words ("how", "to", "the", "in", "with"), wildcard each word, and OR them: "data fetching" -> ["data*", "fetching*"]. Never match the whole phrase as one pattern. groq_query takes no params, so write the array inline.
-- Lessons: search title, pt::text(notes) and keyPoints[] in ONE query, ranked by score:
-  *[_type == "lesson" && (title match $terms || pt::text(notes) match $terms || keyPoints[] match $terms)] | score(boost(title match $terms, 3), pt::text(notes) match $terms, keyPoints[] match $terms) | order(_score desc)[0...25]{_id, title, _score}
-- Video moments live in "video" documents (url, chapters[{startSeconds, label}], chunks[{startSeconds, text}]). A video belongs to the lesson whose videoUrl equals video.url. Match chapters first; use transcript chunks only for videos with no matching chapter. Never project whole chapters or chunks arrays:
-  *[_type == "video" && (chapters[].label match $terms || chunks[].text match $terms)][0...25]{"lessonId": *[_type == "lesson" && videoUrl == ^.url][0]._id, "chapters": chapters[label match $terms][0...2]{startSeconds, label}, "chunks": select(count(chapters[label match $terms]) > 0 => [], chunks[text match $terms][0...2]{startSeconds, text})}
-- Run both queries, then stop querying. Do not use text::semanticSimilarity (embeddings are off).
+// Ranking and grounding rules; the query rules live in code (runSearchQueries) and in the Context document.
+const SYSTEM_PROMPT = `You are the ranking step of search for Vertex, a video learning platform. You do not chat.
+You get the learner's query and two JSON query results: matching lessons ({_id, title, _score}) and matching video moments ({lessonId, lessonTitle, chapters, chunks}). Return every relevant result ranked best first.
 
 ## Ranking
 - Rank by specificity: the exact concept in a lesson title or chapter label beats a broad keyword hit in notes or transcript.
-- A lesson that has a matching video moment is returned once, as a "video" result at its best moment. Otherwise it is a "lesson" result.
+- A lesson that has a matching video moment is returned once, as a "video" result at its best moment (prefer a chapter over a chunk). Otherwise it is a "lesson" result.
 - Leave out results that are only loosely related. Return at most 30.
 
 ## Grounding
-- lessonId must be a lesson _id you saw in a query result. Never invent ids.
-- For a "video" result, startSeconds must be the exact startSeconds of a chapter or chunk you saw. For a "lesson" result, startSeconds is null.
+- lessonId must be a lesson _id or video lessonId from the data. Never invent ids.
+- For a "video" result, startSeconds must be the exact startSeconds of a chapter or chunk listed for that lessonId. For a "lesson" result, startSeconds is null.
 - If nothing matches, return an empty array.`;
 
-// ponytail: cached for the process lifetime (Context doc edits still reach the tools per request); restart to refresh.
-let initialContext: Promise<string> | undefined;
-
-function getInitialContext(mcpUrl: string, token: string) {
-  initialContext ??= fetch(`${mcpUrl.replace(/\/$/, "")}/initial-context`, {
-    headers: { Authorization: `Bearer ${token}` },
-  }).then((res) => (res.ok ? res.text() : Promise.reject(new Error(`initial-context ${res.status}`))));
-  initialContext.catch(() => (initialContext = undefined));
-  return initialContext;
+/** Runs the two prescribed queries through the Context MCP. `terms` are [a-z0-9]+* only (see searchTerms), so inlining is safe. */
+async function runSearchQueries(mcp: MCPClient, terms: string[], signal: AbortSignal) {
+  const t = JSON.stringify(terms);
+  const lessons = `*[_type == "lesson" && (title match ${t} || pt::text(notes) match ${t} || keyPoints[] match ${t})] | score(boost(title match ${t}, 3), pt::text(notes) match ${t}, keyPoints[] match ${t}) | order(_score desc)[0...25]{_id, title, _score}`;
+  // Chapters first; chunks only for videos with no matching chapter. Never project whole arrays.
+  const videos = `*[_type == "video" && (chapters[].label match ${t} || chunks[].text match ${t})] | score(boost(chapters[].label match ${t}, 3), chunks[].text match ${t}) | order(_score desc)[0...25]{"lessonId": *[_type == "lesson" && videoUrl == ^.url][0]._id, "lessonTitle": *[_type == "lesson" && videoUrl == ^.url][0].title, "chapters": chapters[label match ${t}][0...2]{startSeconds, label}, "chunks": select(count(chapters[label match ${t}]) > 0 => [], chunks[text match ${t}][0...2]{startSeconds, text})}`;
+  const run = async (query: string) => {
+    const res = (await mcp.callTool({ name: "groq_query", arguments: { query }, options: { signal } })) as {
+      isError?: boolean;
+      content?: { type: string; text?: string }[];
+    };
+    const text = res.content?.[0]?.text;
+    if (res.isError || !text) throw new Error(`groq_query failed: ${text ?? "no content"}`);
+    return (JSON.parse(text) as { result: unknown[] }).result;
+  };
+  return Promise.all([run(lessons), run(videos)]);
 }
+
+const NDJSON_HEADERS = { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" };
 
 export async function GET(request: Request) {
   const parsed = QuerySchema.safeParse(new URL(request.url).searchParams.get("q") ?? "");
@@ -59,27 +60,26 @@ export async function GET(request: Request) {
     return Response.json({ error: "Search is not configured." }, { status: 500 });
   }
 
+  // Only stop words or punctuation: nothing to match, skip the MCP and the LLM.
+  const terms = searchTerms(parsed.data);
+  if (!terms.length) return new Response("", { headers: NDJSON_HEADERS });
+
   let mcp: MCPClient | undefined;
   try {
-    const [mcpClient, schema] = await Promise.all([
-      createMCPClient({ transport: { type: "http", url: mcpUrl, headers: { Authorization: `Bearer ${token}` } } }),
-      getInitialContext(mcpUrl, token),
-    ]);
-    mcp = mcpClient;
-    // Only groq_query: schema is already in the prompt, and array readers could pull whole transcripts.
-    const { groq_query } = await mcp.tools();
+    mcp = await createMCPClient({ transport: { type: "http", url: mcpUrl, headers: { Authorization: `Bearer ${token}` } } });
+    const [lessons, videos] = await runSearchQueries(mcp, terms, request.signal);
+    await mcp.close();
+    if (!lessons.length && !videos.length) return new Response("", { headers: NDJSON_HEADERS });
 
     const result = streamText({
-      model: google(process.env.GEMINI_MODEL || "gemini-3.1-flash-lite"),
-      instructions: `${SYSTEM_PROMPT}\n\n# Data reference\n\n${schema}`,
-      prompt: `Search query: ${parsed.data}`,
-      tools: { groq_query },
-      stopWhen: isStepCount(6),
-      // Low thinking: the rules are spelled out; deeper thinking only adds latency and free-tier stalls.
+      model: google(process.env.GEMINI_MODEL || "gemini-3.5-flash-lite"),
+      instructions: SYSTEM_PROMPT,
+      prompt: `Search query: ${parsed.data}\n\nLessons:\n${JSON.stringify(lessons)}\n\nVideo moments:\n${JSON.stringify(videos)}`,
+      // Low thinking: the rules are spelled out; deeper thinking only adds latency.
       providerOptions: { google: { thinkingConfig: { thinkingLevel: "low" } } },
       output: Output.array({ element: HitSchema, maxItems: 30 }),
       // A stalled provider stream must not hold the request open; also stop when the learner leaves.
-      timeout: { totalMs: 60_000, toolMs: 15_000 },
+      timeout: { totalMs: 60_000 },
       abortSignal: request.signal,
     });
 
@@ -87,28 +87,36 @@ export async function GET(request: Request) {
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         const seen = new Set<string>();
+        const hydrate = async (hit: z.infer<typeof HitSchema>) => {
+          const lesson = await sanityFetch(SEARCH_HIT_QUERY, { id: hit.lessonId, t: hit.startSeconds ?? -1 });
+          return groundHit(hit, lesson, (image, w, h) => urlFor(image).width(w).height(h).fit("crop").auto("format").url());
+        };
+        // Hydrate every hit as soon as it arrives, but write cards in the model's order.
+        let written = Promise.resolve();
         try {
           for await (const hit of result.elementStream) {
             if (seen.has(hit.lessonId)) continue;
-            const lesson = await sanityFetch(SEARCH_HIT_QUERY, { id: hit.lessonId, t: hit.startSeconds ?? -1 });
-            const card = groundHit(hit, lesson, (image, w, h) => urlFor(image).width(w).height(h).fit("crop").auto("format").url());
-            if (!card) continue;
             seen.add(hit.lessonId);
-            controller.enqueue(encoder.encode(`${JSON.stringify(card)}\n`));
+            const card = hydrate(hit);
+            written = written.then(async () => {
+              const c = await card;
+              if (c) controller.enqueue(encoder.encode(`${JSON.stringify(c)}\n`));
+            });
+            written.catch(() => {}); // surfaced by the await below
           }
           // Provider errors end elementStream quietly; the final output rejects instead.
           await result.output;
+          await written;
         } catch (error) {
           console.error("search stream failed", error);
           controller.enqueue(encoder.encode(`${JSON.stringify({ error: "Search failed." })}\n`));
         } finally {
           controller.close();
-          await mcp?.close();
         }
       },
     });
 
-    return new Response(stream, { headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" } });
+    return new Response(stream, { headers: NDJSON_HEADERS });
   } catch (error) {
     console.error("search failed", error);
     await mcp?.close();

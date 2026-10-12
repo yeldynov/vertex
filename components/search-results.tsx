@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type FormEventHandler } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ChevronRight, CirclePlay, Clock, FileText, Folder, Play, Search, SquareArrowOutUpRight } from "lucide-react";
+import { ArrowRight, ChevronRight, CircleCheck, CirclePlay, Clock, FileText, Folder, LoaderCircle, Play, Search, SquareArrowOutUpRight } from "lucide-react";
 import { Card } from "@/components/cards/card";
 import { captureEvent, TrackedLink } from "@/components/posthog-events";
 import { SearchShortcut } from "@/components/search-shortcut";
@@ -75,7 +75,12 @@ export function SearchResults({ q }: { q: string }) {
         {!q
           ? "Type what you want to learn."
           : status === "loading"
-            ? "Searching your courses…"
+            ? (
+                <span className="inline-flex items-center gap-2">
+                  <LoaderCircle aria-hidden className="size-5 animate-spin text-primary-500" />
+                  Searching your courses…
+                </span>
+              )
             : `Found ${results.length} ${plural(results.length, "result")} across ${courseCount} ${plural(courseCount, "course")}`}
       </p>
 
@@ -91,7 +96,9 @@ export function SearchResults({ q }: { q: string }) {
         <section aria-label="Search results" className="mt-10">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-h3">
-              {results.length} {plural(results.length, "result")}
+              {status !== "loading"
+                ? `${results.length} ${plural(results.length, "result")}`
+                : results.length > 0 && `${results.length} ${plural(results.length, "result")} so far`}
             </h2>
             <Select
               aria-label="Sort results"
@@ -155,7 +162,7 @@ function VideoResult({ result, position }: { result: SearchResult; position: num
         aria-hidden
         className="relative block aspect-video w-full shrink-0 overflow-hidden rounded-md bg-neutral-900 md:w-72"
       >
-        {result.thumbnail && <Image src={result.thumbnail} alt="" fill sizes="(min-width: 768px) 288px, 100vw" className="object-cover opacity-80" />}
+        {result.thumbnail && <Image src={result.thumbnail} alt="" fill sizes="(min-width: 768px) 288px, 100vw" className="object-cover" />}
         <span className="absolute inset-0 m-auto flex size-12 items-center justify-center rounded-full bg-white/90">
           <Play className="size-5 fill-neutral-900 text-neutral-900" />
         </span>
@@ -184,13 +191,14 @@ function VideoResult({ result, position }: { result: SearchResult; position: num
 function LessonResult({ result, position }: { result: SearchResult; position: number }) {
   return (
     <Card className="gap-5 p-4 md:flex-row">
-      <div className="flex w-full shrink-0 gap-3 rounded-md border border-neutral-200 bg-neutral-50 p-4 md:w-72">
+      <div className="relative flex w-full shrink-0 gap-3 rounded-md border border-neutral-200 bg-neutral-50 p-4 pr-10 md:w-72">
         <FileText aria-hidden className="size-5 shrink-0 text-neutral-500" />
         <ul className="list-disc space-y-1.5 pl-4 text-body text-neutral-700">
           {result.keyPoints.map((point) => (
             <li key={point}>{point}</li>
           ))}
         </ul>
+        <CircleCheck aria-hidden className="absolute right-3 bottom-3 size-6 fill-neutral-700 text-white" />
       </div>
       <ResultBody result={result} kind="lesson">
         <span>{result.moduleLabel}</span>
