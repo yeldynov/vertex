@@ -76,3 +76,11 @@ export function formatTimestamp(seconds: number) {
   const s = String(Math.floor(seconds % 60)).padStart(2, "0");
   return h ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`;
 }
+
+const STOP_WORDS = new Set(["a", "an", "and", "or", "of", "for", "is", "are", "what", "do", "i", "how", "to", "the", "in", "with"]);
+
+/** "How to fetch data?" → ["fetch*", "data*"]. Only [a-z0-9] survives, so the terms are safe to inline in GROQ. */
+export function searchTerms(q: string) {
+  const words = q.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w && !STOP_WORDS.has(w));
+  return [...new Set(words)].slice(0, 8).map((w) => `${w}*`);
+}

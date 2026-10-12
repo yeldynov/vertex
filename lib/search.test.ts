@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatTimestamp, groundHit } from "./search.ts";
+import { formatTimestamp, groundHit, searchTerms } from "./search.ts";
 
 const lesson = {
   _id: "lesson.b",
@@ -57,4 +57,11 @@ test("timestamps", () => {
   assert.equal(formatTimestamp(765), "12:45");
   assert.equal(formatTimestamp(5), "0:05");
   assert.equal(formatTimestamp(3725), "1:02:05");
+});
+
+test("searchTerms drops stop words, punctuation and injection characters", () => {
+  assert.deepEqual(searchTerms("How to do Data-Fetching in the app?"), ["data*", "fetching*", "app*"]);
+  assert.deepEqual(searchTerms('useEffect"] || true ][ cleanup useEffect'), ["useeffect*", "true*", "cleanup*"]);
+  assert.deepEqual(searchTerms("the"), []);
+  assert.equal(searchTerms("a b c d e f g h j k l m").length, 8);
 });
