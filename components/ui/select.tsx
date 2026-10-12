@@ -11,7 +11,7 @@ export function Select({ className, children, ...props }: ComponentProps<"select
       </select>
       <ChevronDown
         aria-hidden
-        className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-neutral-700"
+        className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-muted"
       />
     </div>
   );

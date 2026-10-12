@@ -1,4 +1,4 @@
-import { FileText, SquareArrowOutUpRight } from "lucide-react";
+import { ArrowUpRight, FileText } from "lucide-react";
 import { Card } from "./card";
 
 export function ResourceCard({
@@ -15,27 +15,22 @@ export function ResourceCard({
   size?: string;
 }) {
   return (
-    <Card className="relative gap-4 transition-shadow hover:shadow-md">
+    <Card className="group relative gap-4 transition-colors hover:bg-raised">
       <div className="flex gap-3">
-        <FileText aria-hidden className="size-6 shrink-0 text-neutral-700" />
+        <FileText aria-hidden className="size-5 shrink-0 text-amber" />
         <div className="min-w-0">
-          <h3 className="text-body-lg font-medium">
-            <a
-              href={href}
-              target="_blank"
-              rel="noreferrer"
-              className="after:absolute after:inset-0 after:rounded-lg"
-            >
+          <h3 className="text-body-lg font-semibold">
+            <a href={href} target="_blank" rel="noreferrer" className="rounded-xs after:absolute after:inset-0 after:rounded-xl">
               {title}
               <span className="sr-only"> (opens in a new tab)</span>
             </a>
           </h3>
-          <p className="mt-1 text-small text-neutral-500">{description}</p>
+          <p className="mt-1 text-small text-muted">{description}</p>
         </div>
       </div>
-      <div className="mt-auto flex items-center justify-between text-small text-neutral-500">
+      <div className="mt-auto flex items-center justify-between text-small text-muted">
         <span>{[type, size].filter(Boolean).join(" · ")}</span>
-        <SquareArrowOutUpRight aria-hidden className="size-4 text-primary-500" />
+        <ArrowUpRight aria-hidden className="size-4 text-amber transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
       </div>
     </Card>
   );

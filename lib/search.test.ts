@@ -37,6 +37,7 @@ test("video hit needs a real chapter or chunk start", () => {
   assert.equal(r.href, "/courses/nextjs/lessons/fetching-data?t=90");
   assert.equal(r.description, "Caching");
   assert.equal(r.seconds, 30);
+  assert.equal(r.lessonSeconds, 600);
 
   const chunkTail = { ...lesson, video: { chapter: null, nextChapter: null, chunk: "said here", nextChunk: null } };
   assert.equal(groundHit({ kind: "video", lessonId: "lesson.b", startSeconds: 590 }, chunkTail, img)!.seconds, 10);

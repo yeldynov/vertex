@@ -3,15 +3,17 @@
 import { useEffect, useMemo, useState, type FormEventHandler } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ChevronRight, CircleCheck, CirclePlay, Clock, FileText, Folder, LoaderCircle, Play, Search, SquareArrowOutUpRight } from "lucide-react";
+import { ArrowRight, CircleCheck, LoaderCircle, Play, Search } from "lucide-react";
 import { Card } from "@/components/cards/card";
 import { captureEvent, TrackedLink } from "@/components/posthog-events";
 import { SearchShortcut } from "@/components/search-shortcut";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
+import { GrooveBar } from "@/components/ui/groove-bar";
 import { SearchInput } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { formatDuration } from "@/lib/course";
+import { toneDot } from "@/components/ui/sleeve";
+import { courseTone, formatDuration } from "@/lib/course";
 import { formatTimestamp, type SearchResult } from "@/lib/search";
 
 type Status = "loading" | "done" | "error";
@@ -71,48 +73,44 @@ export function SearchResults({ q }: { q: string }) {
 
   return (
     <>
-      <p aria-live="polite" className="mt-4 text-center text-body-lg text-neutral-500">
+      <p aria-live="polite" className="mt-4 text-body-lg text-muted tabular-nums">
         {!q
           ? "Type what you want to learn."
           : status === "loading"
             ? (
                 <span className="inline-flex items-center gap-2">
-                  <LoaderCircle aria-hidden className="size-5 animate-spin text-primary-500" />
+                  <LoaderCircle aria-hidden className="size-5 animate-spin text-amber" />
                   Searching your courses…
                 </span>
               )
             : `Found ${results.length} ${plural(results.length, "result")} across ${courseCount} ${plural(courseCount, "course")}`}
       </p>
 
-      <form action="/search" role="search" onSubmit={handleSubmit} className="mx-auto mt-8 max-w-3xl">
+      <form action="/search" role="search" onSubmit={handleSubmit} className="mt-8 max-w-3xl">
         <label htmlFor="search-page-input" className="sr-only">
           Search your learning
         </label>
-        <SearchInput id="search-page-input" name="q" required minLength={2} maxLength={200} defaultValue={q} shortcut="⌘ K" className="[&_input]:h-14" />
+        <SearchInput id="search-page-input" name="q" required minLength={2} maxLength={200} defaultValue={q} shortcut="⌘ K" className="[&_input]:h-14 [&_input]:bg-raised" />
         <SearchShortcut id="search-page-input" />
       </form>
 
       {q && (
-        <section aria-label="Search results" className="mt-10">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-h3">
-              {status !== "loading"
-                ? `${results.length} ${plural(results.length, "result")}`
-                : results.length > 0 && `${results.length} ${plural(results.length, "result")} so far`}
-            </h2>
+        <section aria-label="Search results" className="mt-12">
+          <div className="flex items-center justify-end gap-3 border-b border-line pb-4">
+            <span aria-hidden className="text-small text-muted">Ranked by</span>
             <Select
               aria-label="Sort results"
               value={sort}
               onChange={(e) => setSort(e.target.value as Sort)}
-              className="w-full sm:w-48"
+              className="w-full sm:w-52"
             >
-              <option value="relevance">Most Relevant</option>
+              <option value="relevance">Most relevant</option>
               <option value="course">Course A–Z</option>
               <option value="shortest">Shortest first</option>
             </Select>
           </div>
 
-          <ol className="mt-4 flex flex-col gap-4">
+          <ol className="mt-6 flex flex-col gap-4">
             {sorted.map((result, i) => (
               <li key={`${result.kind}-${result.lessonSlug}-${result.courseSlug}`}>
                 {result.kind === "video" ? <VideoResult result={result} position={i + 1} /> : <LessonResult result={result} position={i + 1} />}
@@ -122,12 +120,12 @@ export function SearchResults({ q }: { q: string }) {
           </ol>
 
           {status === "done" && results.length === 0 && (
-            <p className="mt-2 text-center text-body-lg text-neutral-700">No results for “{q}”.</p>
+            <p className="mt-2 text-body-lg text-ramp-9">No results for “{q}”.</p>
           )}
           {status === "error" && (
-            <p className="mt-4 text-center text-body-lg text-neutral-700">
+            <p className="mt-4 text-body-lg text-ramp-9">
               Search failed.{" "}
-              <a href={`/search?q=${encodeURIComponent(q)}`} className="text-primary-500 underline underline-offset-2">
+              <a href={`/search?q=${encodeURIComponent(q)}`} className="text-amber underline decoration-amber/40 hover:decoration-amber">
                 Try again
               </a>
             </p>
@@ -135,17 +133,17 @@ export function SearchResults({ q }: { q: string }) {
         </section>
       )}
 
-      <div className="mt-6 flex flex-col items-start gap-4 rounded-lg border border-primary-100 bg-primary-100/40 p-5 sm:flex-row sm:items-center sm:px-7">
-        <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary-100">
-          <Search aria-hidden className="size-6 text-primary-500" />
+      <div className="mt-10 flex flex-col items-start gap-4 rounded-xl bg-surface p-5 sm:flex-row sm:items-center sm:px-7">
+        <span className="grid size-12 shrink-0 place-items-center rounded-full bg-amber/15">
+          <Search aria-hidden className="size-5 text-amber" />
         </span>
         <div className="flex-1">
-          <p className="text-body-lg font-medium text-neutral-900">Can’t find what you’re looking for?</p>
-          <p className="text-body text-neutral-500">Try different keywords or browse our full course catalog.</p>
+          <p className="text-body-lg font-semibold">Can’t find what you’re looking for?</p>
+          <p className="text-body text-muted">Try different keywords or browse the full course catalog.</p>
         </div>
         <Link href="/courses" className={buttonClasses("tertiary")}>
           Browse all courses
-          <ArrowRight aria-hidden className="size-4 text-primary-500" />
+          <ArrowRight aria-hidden className="size-4 text-amber" />
         </Link>
       </div>
     </>
@@ -153,36 +151,41 @@ export function SearchResults({ q }: { q: string }) {
 }
 
 function VideoResult({ result, position }: { result: SearchResult; position: number }) {
-  const start = formatTimestamp(result.startSeconds ?? 0);
+  const start = result.startSeconds ?? 0;
+  const at = formatTimestamp(start);
   return (
-    <Card className="gap-5 p-4 md:flex-row">
+    <Card className="gap-5 p-3 transition-colors hover:bg-raised sm:p-4 md:flex-row md:gap-6">
       <Link
         href={result.href}
         tabIndex={-1}
         aria-hidden
-        className="relative block aspect-video w-full shrink-0 overflow-hidden rounded-md bg-neutral-900 md:w-72"
+        className="group/thumb relative block aspect-video w-full shrink-0 self-start overflow-hidden rounded-lg bg-ramp-0 md:w-72"
       >
-        {result.thumbnail && <Image src={result.thumbnail} alt="" fill sizes="(min-width: 768px) 288px, 100vw" className="object-cover" />}
-        <span className="absolute inset-0 m-auto flex size-12 items-center justify-center rounded-full bg-white/90">
-          <Play className="size-5 fill-neutral-900 text-neutral-900" />
+        {result.thumbnail && (
+          <Image
+            src={result.thumbnail}
+            alt=""
+            fill
+            sizes="(min-width: 768px) 288px, 100vw"
+            className="object-cover transition-transform duration-700 ease-out-expo group-hover/thumb:scale-[1.03]"
+          />
+        )}
+        <span className="absolute bottom-3 left-3 grid size-10 place-items-center rounded-full bg-amber text-on-amber">
+          <Play className="size-4 translate-x-px fill-current" />
         </span>
-        <span className="absolute right-3 bottom-3 rounded-xs bg-neutral-900/85 px-2 py-0.5 text-small font-medium text-white">{start}</span>
-      </Link>
-      <ResultBody result={result} kind="video">
-        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <FileText aria-hidden className="size-4" />
-          {result.lessonLabel}
-          <span aria-hidden>·</span>
-          <Folder aria-hidden className="size-4" />
-          {result.moduleTitle}
-          <span aria-hidden>·</span>
-          <Clock aria-hidden className="size-4" />
+        <span className="absolute right-3 bottom-3 rounded-xs bg-ramp-0/85 px-1.5 text-small font-semibold text-ink tabular-nums">
           {formatDuration(result.seconds)} clip
         </span>
-        <ResultLink result={result} position={position}>
-          <CirclePlay aria-hidden className="size-5" />
-          Watch from {start}
-        </ResultLink>
+      </Link>
+      <ResultBody result={result} kind="video" quote={result.description}>
+        <GrooveBar duration={result.lessonSeconds} at={start} span={[start, start + result.seconds]} className="mt-1" />
+        <div className="flex flex-wrap items-center justify-between gap-3 text-small text-muted">
+          <span className="min-w-0 truncate">{result.moduleTitle}</span>
+          <ResultLink result={result} position={position}>
+            <Play aria-hidden className="size-3.5 fill-current" />
+            Play from {at}
+          </ResultLink>
+        </div>
       </ResultBody>
     </Card>
   );
@@ -190,44 +193,68 @@ function VideoResult({ result, position }: { result: SearchResult; position: num
 
 function LessonResult({ result, position }: { result: SearchResult; position: number }) {
   return (
-    <Card className="gap-5 p-4 md:flex-row">
-      <div className="relative flex w-full shrink-0 gap-3 rounded-md border border-neutral-200 bg-neutral-50 p-4 pr-10 md:w-72">
-        <FileText aria-hidden className="size-5 shrink-0 text-neutral-500" />
-        <ul className="list-disc space-y-1.5 pl-4 text-body text-neutral-700">
+    <Card className="gap-5 p-3 transition-colors hover:bg-raised sm:p-4 md:flex-row md:gap-6">
+      {result.keyPoints.length > 0 && (
+        <ul className="flex w-full shrink-0 flex-col gap-2.5 self-start rounded-lg bg-ground/60 p-4 text-body text-ramp-9 md:w-72">
           {result.keyPoints.map((point) => (
-            <li key={point}>{point}</li>
+            <li key={point} className="flex gap-2.5">
+              <CircleCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-lesson" />
+              {point}
+            </li>
           ))}
         </ul>
-        <CircleCheck aria-hidden className="absolute right-3 bottom-3 size-6 fill-neutral-700 text-white" />
-      </div>
-      <ResultBody result={result} kind="lesson">
-        <span>{result.moduleLabel}</span>
-        <ResultLink result={result} position={position}>
-          View lesson
-          <SquareArrowOutUpRight aria-hidden className="size-4" />
-        </ResultLink>
+      )}
+      <ResultBody result={result} kind="lesson" quote={result.description}>
+        <GrooveBar duration={result.lessonSeconds} className="mt-1" />
+        <div className="flex flex-wrap items-center justify-between gap-3 text-small text-muted">
+          <span className="tabular-nums">
+            {result.moduleLabel} · {formatDuration(result.seconds)}
+          </span>
+          <ResultLink result={result} position={position}>
+            Open lesson
+            <ArrowRight aria-hidden className="size-4" />
+          </ResultLink>
+        </div>
       </ResultBody>
     </Card>
   );
 }
 
-function ResultBody({ result, kind, children }: { result: SearchResult; kind: SearchResult["kind"]; children: React.ReactNode }) {
+function ResultBody({
+  result,
+  kind,
+  quote,
+  children,
+}: {
+  result: SearchResult;
+  kind: SearchResult["kind"];
+  quote: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-2">
+    <div className="flex min-w-0 flex-1 flex-col gap-3 md:py-1">
       <div className="flex items-start justify-between gap-3">
-        <p className="flex min-w-0 items-center gap-2 text-body text-neutral-700">
-          {result.courseIcon && <Image src={result.courseIcon} alt="" width={20} height={20} className="size-5 shrink-0 rounded-xs object-cover" />}
+        <p className="flex min-w-0 items-center gap-2 text-small text-muted">
+          <span aria-hidden className={`size-2.5 shrink-0 rounded-full ${toneDot[courseTone(result.courseSlug)]}`} />
           <span className="truncate">{result.courseTitle}</span>
+          <span aria-hidden>·</span>
+          <span className="shrink-0 font-semibold text-ink tabular-nums">{result.lessonLabel.replace("Lesson ", "")}</span>
+          <span className="sr-only">{result.lessonLabel}</span>
         </p>
         <Badge kind={kind} />
       </div>
-      <h3 className="text-h3 font-semibold">
-        <Link href={result.href} className="hover:text-primary-500">
+      <h3 className="font-display text-h2 leading-tight font-bold tracking-[-0.015em]">
+        <Link href={result.href} className="rounded-xs hover:text-amber-hi">
           {result.title}
         </Link>
       </h3>
-      <p className="line-clamp-2 text-body text-neutral-500">{result.description}</p>
-      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-2 text-small text-neutral-500">{children}</div>
+      <p className="line-clamp-2 max-w-[70ch] text-body text-muted">
+        {kind === "video" && result.startSeconds != null && (
+          <span className="font-semibold text-ramp-9">At {formatTimestamp(result.startSeconds)}: </span>
+        )}
+        {kind === "video" ? `“${quote}”` : quote}
+      </p>
+      <div className="mt-auto flex flex-col gap-3">{children}</div>
     </div>
   );
 }
@@ -241,7 +268,6 @@ function ResultLink({ result, position, children }: { result: SearchResult; posi
       className={buttonClasses("text")}
     >
       {children}
-      <ChevronRight aria-hidden className="size-4" />
     </TrackedLink>
   );
 }
@@ -250,12 +276,12 @@ function ResultSkeleton() {
   return (
     <li aria-hidden>
       <Card className="animate-pulse gap-5 p-4 md:flex-row">
-        <div className="aspect-video w-full rounded-md bg-neutral-100 md:w-72" />
+        <div className="aspect-video w-full rounded-lg bg-raised md:w-72" />
         <div className="flex flex-1 flex-col gap-3 py-1">
-          <div className="h-4 w-40 rounded-xs bg-neutral-100" />
-          <div className="h-5 w-3/4 rounded-xs bg-neutral-100" />
-          <div className="h-4 w-full rounded-xs bg-neutral-100" />
-          <div className="h-4 w-2/3 rounded-xs bg-neutral-100" />
+          <div className="h-4 w-40 rounded-full bg-raised" />
+          <div className="h-6 w-3/4 rounded-full bg-raised" />
+          <div className="h-4 w-full rounded-full bg-raised" />
+          <div className="mt-auto h-2.5 w-full rounded-full bg-raised" />
         </div>
       </Card>
     </li>

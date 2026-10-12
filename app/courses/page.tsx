@@ -12,20 +12,20 @@ export default async function CoursesPage() {
 
   return (
     <PageFrame>
-      <section aria-labelledby="all-courses" className="px-4 pt-8 sm:px-13 sm:pt-10 xl:px-20">
+      <section aria-labelledby="all-courses" className="px-4 pt-8 sm:px-8 sm:pt-10 xl:px-12">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "All Courses" }]} />
-        <div className="mt-8 flex flex-wrap items-baseline justify-between gap-2">
-          <h1 id="all-courses" className="font-display text-h1 font-medium">
-            All Courses
+        <div className="mt-8 flex flex-wrap items-baseline gap-x-4 gap-y-2">
+          <h1 id="all-courses" className="font-display text-[clamp(2.5rem,5vw,3.5rem)] leading-none font-extrabold tracking-[-0.035em]">
+            All courses
           </h1>
-          <p className="text-body text-neutral-500">
-            {courses.length} {courses.length === 1 ? "course" : "courses"}
+          <p className="text-body text-muted tabular-nums">
+            {courses.length} {courses.length === 1 ? "course" : "courses"} on the shelf
           </p>
         </div>
         {courses.length ? (
           <CourseGrid courses={courses} />
         ) : (
-          <p className="mt-6 text-body-lg text-neutral-500">No courses yet.</p>
+          <p className="mt-6 text-body-lg text-muted">No courses yet.</p>
         )}
       </section>
     </PageFrame>

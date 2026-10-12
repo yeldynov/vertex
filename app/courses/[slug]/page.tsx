@@ -1,17 +1,13 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Show } from "@clerk/nextjs";
 import {
   ArrowRight,
   Bookmark,
-  ChartNoAxesColumnIncreasing,
   ChevronDown,
-  Clock,
   Code,
   Database,
-  File,
-  Gauge,
+    Gauge,
   Layers,
   Puzzle,
   Rocket,
@@ -20,7 +16,6 @@ import {
   ShieldCheck,
   Sparkles,
   Target,
-  Users,
   Workflow,
   Zap,
 } from "lucide-react";
@@ -30,7 +25,10 @@ import { Badge } from "@/components/ui/badge";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { buttonClasses } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
-import { formatCount, formatDuration, lessonLabel } from "@/lib/course";
+import { GrooveBar } from "@/components/ui/groove-bar";
+import { Disc, DuotoneImage, toneClasses } from "@/components/ui/sleeve";
+import { cx } from "@/lib/cx";
+import { courseTone, formatCount, formatDuration, lessonLabel } from "@/lib/course";
 import { sanityFetch } from "@/sanity/lib/client";
 import { urlFor } from "@/sanity/lib/image";
 import { COURSE_QUERY, COURSE_SLUGS_QUERY } from "@/sanity/queries";
@@ -74,115 +72,110 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
   const firstLesson = modules[0]?.lessons?.[0];
   const totalLength = course.totalSeconds ? formatDuration(course.totalSeconds) : null;
   const moduleCount = `${modules.length} modules`;
+  const tone = courseTone(slug);
+  // Lesson bars are drawn to scale against the course's longest lesson.
+  const longest = Math.max(1, ...modules.flatMap((m) => m.lessons?.map((l) => l.duration ?? 0) ?? []));
   // ponytail: no progress store yet; the progress task supplies real % and the resume lesson.
   const progress = 0;
-  const cta = firstLesson && (
-    <TrackedLink
-      href={lessonHref(firstLesson.slug)}
-      eventName="course_started"
-      eventProperties={{ course_slug: slug }}
-      className={`${buttonClasses("primary", "lg")} h-13 px-6 font-normal shadow-md`}
-    >
-      Start Learning
-      <ArrowRight aria-hidden className="size-5" />
-    </TrackedLink>
-  );
+  const cta = (onTone: boolean) =>
+    firstLesson && (
+      <TrackedLink
+        href={lessonHref(firstLesson.slug)}
+        eventName="course_started"
+        eventProperties={{ course_slug: slug }}
+        className={buttonClasses(onTone ? "inverse" : "primary", "lg")}
+      >
+        Start learning
+        <ArrowRight aria-hidden className="size-5" />
+      </TrackedLink>
+    );
 
   return (
     <PageFrame
       footer={
-        cta && (
+        firstLesson && (
           <Show when="signed-in">
-            <div className="px-4 pt-8 pb-10 sm:px-10 xl:px-16">
-              <div className="flex flex-col gap-4 rounded-lg border border-neutral-200 bg-white p-5 shadow-md sm:flex-row sm:items-center sm:gap-10 sm:px-6">
-                <p className="text-small text-neutral-500">
-                  Your Progress
-                  <span className="mt-1 block text-body-lg text-neutral-900">{progress}% complete</span>
+            <div className="px-4 pt-12 sm:px-8 xl:px-12">
+              <div className="flex flex-col gap-4 rounded-xl bg-surface p-5 sm:flex-row sm:items-center sm:gap-10 sm:px-6">
+                <p className="text-small text-muted">
+                  Your progress
+                  <span className="mt-1 block text-body-lg font-semibold text-ink tabular-nums">{progress}% complete</span>
                 </p>
                 <ProgressBar value={progress} showLabel={false} className="sm:w-70" />
-                <div className="sm:ml-auto">{cta}</div>
+                <div className="sm:ml-auto">{cta(false)}</div>
               </div>
             </div>
           </Show>
         )
       }
     >
-      <div className="px-4 pt-8 sm:px-10 sm:pt-10 xl:px-16">
+      <div className="px-4 pt-8 sm:px-8 sm:pt-10 xl:px-12">
         <Breadcrumbs items={[{ label: "All Courses", href: "/courses" }, { label: course.title ?? "" }]} />
 
-        <section className="mt-10 grid gap-8 md:grid-cols-[minmax(0,17.5rem)_1fr] md:gap-14">
-          {course.coverImage?.asset && (
-            <Image
-              src={urlFor(course.coverImage).width(560).height(652).fit("crop").url()}
-              alt={course.coverImage.alt ?? ""}
-              width={280}
-              height={326}
-              priority
-              className="aspect-[280/326] w-full max-w-70 rounded-lg object-cover shadow-md max-md:mx-auto"
-            />
+        <section
+          className={cx(
+            "relative isolate mt-6 grid gap-10 overflow-hidden rounded-2xl p-6 sm:p-10 md:grid-cols-[minmax(0,1fr)_minmax(0,18rem)] md:gap-14 lg:grid-cols-[minmax(0,1fr)_22rem] lg:p-14",
+            toneClasses[tone],
           )}
-          <div className="min-w-0">
-            {course.popular && <Badge kind="popular" className="px-3 py-1.5 tracking-[0.15em]" />}
-            <h1 className="mt-5 font-display text-display-2 font-medium tracking-tight md:text-[3.25rem] md:leading-[3.75rem]">
+        >
+          <div className="min-w-0 self-center">
+            <h1 className="font-display text-[clamp(2.5rem,5.5vw,4.5rem)] leading-[0.98] font-extrabold tracking-[-0.035em] text-balance">
               {course.title}
             </h1>
-            <p className="mt-5 max-w-xl text-body-lg text-neutral-500 sm:text-h3 sm:leading-8 sm:font-normal">
-              {course.summary}
+            <p className="mt-5 max-w-2xl text-body-lg opacity-90 sm:text-[1.25rem] sm:leading-8">{course.summary}</p>
+            <p className="mt-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-body font-semibold tabular-nums">
+              {course.popular && <Badge kind="popular" className="mr-1" />}
+              {[course.level && course.level[0].toUpperCase() + course.level.slice(1), totalLength, moduleCount, course.studentCount != null && `${formatCount(course.studentCount)} students`]
+                .filter(Boolean)
+                .map((part, i) => (
+                  <span key={i} className="whitespace-nowrap">
+                    {i > 0 && <span aria-hidden className="mr-2 opacity-60">·</span>}
+                    {part}
+                  </span>
+                ))}
             </p>
-            <ul className="mt-7 flex flex-wrap gap-x-8 gap-y-3 text-body text-neutral-700 [&_svg]:size-5 [&_svg]:text-neutral-500">
-              {course.level && (
-                <li className="flex items-center gap-2 capitalize">
-                  <ChartNoAxesColumnIncreasing aria-hidden />
-                  {course.level}
-                </li>
-              )}
-              {totalLength && (
-                <li className="flex items-center gap-2">
-                  <Clock aria-hidden />
-                  {totalLength}
-                </li>
-              )}
-              <li className="flex items-center gap-2">
-                <File aria-hidden />
-                {moduleCount}
-              </li>
-              {course.studentCount != null && (
-                <li className="flex items-center gap-2">
-                  <Users aria-hidden />
-                  {formatCount(course.studentCount)} students
-                </li>
-              )}
-            </ul>
-            <div className="mt-8 flex flex-wrap gap-4">
-              {cta}
+            <div className="mt-8 flex flex-wrap gap-3">
+              {cta(true)}
               {/* Presentational only: bookmarks have no backend. */}
               <TrackedButton
                 type="button"
                 eventName="course_bookmarked"
                 eventProperties={{ course_slug: slug }}
-                className={`${buttonClasses("tertiary", "lg")} h-13 px-5 font-normal`}
+                className={buttonClasses("ghost", "lg")}
               >
                 <Bookmark aria-hidden className="size-5" />
                 Bookmark
               </TrackedButton>
             </div>
           </div>
+          {course.coverImage?.asset && (
+            <div className="relative mr-[18%] aspect-square max-md:max-w-72 md:mr-0 md:-translate-x-[12%]">
+              <Disc className="translate-x-[30%]" />
+              <div className="relative size-full overflow-hidden rounded-md bg-(--tone) ring-1 ring-ramp-0/30 brightness-[0.62] saturate-150">
+                <DuotoneImage
+                  src={urlFor(course.coverImage).width(720).height(720).fit("crop").url()}
+                  priority
+                  sizes="(min-width: 1024px) 352px, (min-width: 768px) 288px, 288px"
+                />
+              </div>
+            </div>
+          )}
         </section>
 
         {!!course.learningOutcomes?.length && (
-          <section aria-labelledby="outcomes" className="mt-12 rounded-lg border border-neutral-200 bg-white/40 p-4 sm:p-7">
-            <h2 id="outcomes" className="font-display text-h2 font-normal">
+          <section aria-labelledby="outcomes" className="mt-16">
+            <h2 id="outcomes" className="font-display text-h1 font-extrabold tracking-[-0.025em]">
               What you’ll learn
             </h2>
-            <ul className="mt-6 grid gap-5 md:grid-cols-2">
+            <ul className="mt-6 grid gap-x-12 md:grid-cols-2">
               {course.learningOutcomes.map(({ _key, icon, title, description }) => {
                 const Icon = (icon && outcomeIcons[icon]) || Sparkles;
                 return (
-                  <li key={_key} className="flex gap-5 rounded-md border border-neutral-200 bg-white p-5 sm:gap-7 sm:p-7">
-                    <Icon aria-hidden strokeWidth={1.25} className="size-11 shrink-0 text-primary-500 sm:size-13" />
+                  <li key={_key} className="flex gap-5 border-t border-line py-6">
+                    <Icon aria-hidden strokeWidth={1.5} className="mt-0.5 size-6 shrink-0 text-amber" />
                     <div className="min-w-0">
-                      <h3 className="font-display text-h3 font-normal sm:text-[1.25rem]">{title}</h3>
-                      {description && <p className="mt-3 text-body-lg leading-6 text-neutral-500">{description}</p>}
+                      <h3 className="text-h3 font-semibold">{title}</h3>
+                      {description && <p className="mt-2 max-w-[62ch] text-body text-muted">{description}</p>}
                     </div>
                   </li>
                 );
@@ -191,36 +184,34 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
           </section>
         )}
 
-        <section aria-labelledby="content" className="mt-10">
+        <section aria-labelledby="content" className="mt-14">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id="content" className="font-display text-h2 font-normal">
-              Course Content
+            <h2 id="content" className="font-display text-h1 font-extrabold tracking-[-0.025em]">
+              Tracklist
             </h2>
-            <p className="text-body text-neutral-500">
+            <p className="text-body text-muted tabular-nums">
               {moduleCount}
-              {totalLength && <> &nbsp;•&nbsp; {totalLength}</>}
+              {totalLength && <> · {totalLength}</>}
             </p>
           </div>
 
           <input id="show-all-modules" type="checkbox" className="peer sr-only" />
-          <ol className="mt-4 divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-white peer-checked:[&>li]:block">
+          <ol className="mt-6 flex flex-col gap-3 peer-checked:[&>li]:block">
             {modules.map((module, m) => {
               const seconds = module.lessons?.reduce((sum, l) => sum + (l.duration ?? 0), 0) ?? 0;
               return (
                 <li key={module._key} className={m >= VISIBLE_MODULES ? "hidden" : undefined}>
-                  <details className="group/module">
-                    <summary className="flex cursor-pointer list-none items-center gap-4 px-4 py-3 sm:gap-6 sm:px-5 [&::-webkit-details-marker]:hidden">
-                      <span className="grid size-10 shrink-0 place-items-center rounded-full border border-neutral-200 text-body-lg">
-                        {m + 1}
-                      </span>
+                  <details className="group/module rounded-xl bg-surface" open={m === 0}>
+                    <summary className="flex cursor-pointer list-none items-center gap-4 rounded-xl px-4 py-4 transition-colors hover:bg-raised sm:gap-6 sm:px-6 [&::-webkit-details-marker]:hidden">
+                      <span className="w-8 shrink-0 font-display text-h1 font-extrabold text-amber tabular-nums">{m + 1}</span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-body-lg font-medium">{module.title}</span>
-                        {module.summary && <span className="mt-0.5 block text-body text-neutral-500">{module.summary}</span>}
+                        <span className="block text-body-lg font-semibold">{module.title}</span>
+                        {module.summary && <span className="mt-0.5 block text-body text-muted">{module.summary}</span>}
                       </span>
-                      {seconds > 0 && <span className="shrink-0 text-body text-neutral-500">{formatDuration(seconds)}</span>}
-                      <ChevronDown aria-hidden className="size-5 shrink-0 text-neutral-700 transition-transform group-open/module:rotate-180" />
+                      {seconds > 0 && <span className="shrink-0 text-body text-muted tabular-nums max-sm:hidden">{formatDuration(seconds)}</span>}
+                      <ChevronDown aria-hidden className="size-5 shrink-0 text-muted transition-transform group-open/module:rotate-180" />
                     </summary>
-                    <ol className="border-t border-neutral-100 pb-2 sm:pl-16">
+                    <ol className="px-2 pb-3 sm:px-3">
                       {module.lessons?.map((lesson, l) => (
                         <li key={lesson._id}>
                           <TrackedLink
@@ -232,13 +223,27 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
                               lesson_index: l + 1,
                               is_free_preview: Boolean(lesson.freePreview),
                             }}
-                            className="flex items-center gap-4 px-4 py-2.5 text-body hover:bg-neutral-50 sm:px-5"
+                            className="group/row flex items-center gap-4 rounded-lg px-2 py-3 text-body transition-colors hover:bg-raised sm:gap-6 sm:px-3"
                           >
-                            <span className="w-20 shrink-0 text-small text-neutral-500">{lessonLabel(m, l)}</span>
-                            <span className="min-w-0 flex-1">{lesson.title}</span>
-                            {lesson.freePreview && <span className="shrink-0 text-small text-primary-500">Free preview</span>}
+                            <span className="w-10 shrink-0 self-start pt-0.5 text-small font-semibold text-muted tabular-nums sm:w-12 sm:pl-1">
+                              <span className="sr-only">{lessonLabel(m, l)}</span>
+                              <span aria-hidden>{m + 1}.{l + 1}</span>
+                            </span>
+                            <span className="min-w-0 flex-1 group-hover/row:text-ink">
+                              <span>{lesson.title}</span>
+                              {lesson.freePreview && (
+                                <span className="ml-2 inline-block rounded-full bg-amber/15 px-2.5 py-0.5 align-middle text-small font-semibold whitespace-nowrap text-amber">
+                                  Free preview
+                                </span>
+                              )}
+                              {!!lesson.duration && (
+                                <span className="mt-2 block" style={{ width: `${(lesson.duration / longest) * 100}%` }}>
+                                  <GrooveBar duration={lesson.duration} />
+                                </span>
+                              )}
+                            </span>
                             {lesson.duration != null && (
-                              <span className="shrink-0 text-small text-neutral-500">{formatDuration(lesson.duration)}</span>
+                              <span className="w-14 shrink-0 self-start pt-0.5 text-right text-small text-muted tabular-nums">{formatDuration(lesson.duration)}</span>
                             )}
                           </TrackedLink>
                         </li>
@@ -252,7 +257,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
           {modules.length > VISIBLE_MODULES && (
             <label
               htmlFor="show-all-modules"
-              className={`${buttonClasses("tertiary")} relative mx-auto -mt-5 flex w-fit cursor-pointer peer-focus-visible:outline-2 peer-focus-visible:outline-primary-400 [&_svg]:transition-transform peer-checked:[&_svg]:rotate-180 peer-checked:[&>.more]:hidden peer-checked:[&>.less]:inline [&>.less]:hidden`}
+              className={`${buttonClasses("tertiary")} relative mx-auto mt-4 flex w-fit cursor-pointer peer-focus-visible:outline-2 peer-focus-visible:outline-amber [&_svg]:transition-transform peer-checked:[&_svg]:rotate-180 peer-checked:[&>.more]:hidden peer-checked:[&>.less]:inline [&>.less]:hidden`}
             >
               <span className="more">Show all {modules.length} modules</span>
               <span className="less">Show fewer modules</span>

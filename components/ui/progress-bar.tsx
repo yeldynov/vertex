@@ -19,11 +19,11 @@ export function ProgressBar({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label="Course progress"
-        className="h-1.5 flex-1 overflow-hidden rounded-full bg-neutral-100"
+        className="h-1.5 flex-1 overflow-hidden rounded-full bg-raised"
       >
-        <div className="h-full rounded-full bg-primary-500" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-full bg-amber" style={{ width: `${pct}%` }} />
       </div>
-      {showLabel && <span className="text-small whitespace-nowrap text-neutral-700">{pct}% complete</span>}
+      {showLabel && <span className="text-small whitespace-nowrap text-ramp-9 tabular-nums">{pct}% complete</span>}
     </div>
   );
 }
