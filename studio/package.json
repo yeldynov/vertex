@@ -7,7 +7,8 @@
     "build": "sanity build",
     "deploy": "sanity deploy",
     "schema:deploy": "sanity schema deploy",
-    "typegen": "sanity schema extract && sanity typegen generate"
+    "typegen": "sanity schema extract && sanity typegen generate",
+    "ingest": "sanity exec scripts/ingest/ingest.ts --with-user-token --"
   },
   "dependencies": {
     "@sanity/vision": "^5.31.2",
